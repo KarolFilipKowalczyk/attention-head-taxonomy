@@ -1016,13 +1016,173 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} These heads shape the model's writing style, tone, and persona. They modulate formality, politeness, narrative voice, and adherence to brand guidelines.
 
-% Entries to be filled:
-% 10.1 (M) Narrative style head
-% 10.2 (M) Tone head
-% 10.3 (L) Politeness head
-% 10.4 (L) Persona head
-% 10.5 (L) Self-description head
-% 10.6 (F) Brand-compliance head
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Narrative Style Head}
+\label{head:narrative-style}
+
+\noindent\depthinfo{0.35--0.60} | \litnames{narrative-style head, voice head, perspective head}
+
+\begin{functiondesc}
+Modulates narrative voice and writing style characteristics, including perspective (first/third person), temporal framing (past/present tense), and narrative distance. Adjusts stylistic features like descriptiveness, pacing, and literary devices based on the detected genre or explicit instructions. Influences whether output reads as formal prose, casual conversation, technical documentation, or creative narrative. Works by biasing token probabilities toward style-consistent vocabulary and grammatical structures.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Genre indicators, style instructions, narrative markers, existing voice patterns}\\
+\attweak{Content-specific tokens, factual information}\\
+\attreacts{Genre cues, style directives, narrative perspective markers}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} More generic or inconsistent writing style (~15-25\% reduction in style coherence). Model defaults to neutral prose style. Mixed tense and perspective usage. Style instructions may be partially ignored.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Write a story about a robot in first person past tense"}\\
+\exbehavior{Attends to "first person" and "past tense", biases output toward "I" and past-tense verbs}\\
+\exeffect{Output maintains consistent narrative perspective: "I wandered through..." rather than "The robot wanders..."}
+\end{examplebox}
+
+\headfooter{\statusobs}{tone (M), persona (L), instruction (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Tone Head}
+\label{head:tone}
+
+\noindent\depthinfo{0.40--0.65} | \litnames{tone head, sentiment-modulation head, affect head}
+
+\begin{functiondesc}
+Modulates the emotional tone and affective content of generated text. Adjusts sentiment, enthusiasm level, seriousness, empathy, and emotional valence based on context and instructions. Can shift between professional neutrality, warm friendliness, concerned empathy, or excited enthusiasm. Operates by attending to emotional cues in the input and adjusting output token probabilities to match the appropriate affective register. Distinct from politeness (which is about social register) and persona (which is about identity).
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Emotional cues, tone instructions, sentiment markers, affective language}\\
+\attweak{Neutral factual content, structural tokens}\\
+\attreacts{Emotional context, explicit tone requests, user sentiment}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Flatter, more emotionally neutral responses (~20-30\% reduction in tone appropriateness). Reduced ability to match user's emotional register. May produce inappropriate cheerfulness in serious contexts or excessive neutrality in casual conversation.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"I'm really excited to learn about quantum physics!"}\\
+\exbehavior{Detects enthusiastic tone, attends to "excited", adjusts output toward matching enthusiasm}\\
+\exeffect{Response mirrors energy: "That's wonderful! Quantum physics is fascinating..." rather than neutral explanation}
+\end{examplebox}
+
+\headfooter{\statusobs}{narrative-style (M), politeness (L), emotion-detection (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Politeness Head}
+\label{head:politeness}
+
+\noindent\depthinfo{0.65--0.85} | \litnames{politeness head, formality head, register head}
+
+\begin{functiondesc}
+Adjusts the formality level and politeness markers in generated text. Controls the use of formal vs. casual language, honorifics, hedging phrases ("perhaps", "might"), indirect phrasing, and social distance markers. Responds to both explicit formality cues in the input (professional contexts, formal greetings) and implicit social signals. Can modulate between highly formal academic/business register, neutral conversational register, and casual/familiar register. Important for appropriate social interaction across different contexts.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Formality markers, social context cues, titles/honorifics, register indicators}\\
+\attweak{Pure content, technical terms, domain-specific vocabulary}\\
+\attreacts{Professional contexts, formal greetings, casual speech patterns, social distance cues}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Inappropriate formality levels (~25-40\% increase in register mismatches). May use overly casual language in professional contexts or unnecessarily formal language in friendly conversation. Reduced sensitivity to social context cues.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Dear Dr. Smith, I hope this message finds you well. I wanted to inquire..."}\\
+\exbehavior{Detects formal register (title, formal greeting), maintains appropriate distance}\\
+\exeffect{Response continues formal tone: "Thank you for your inquiry..." rather than "Hey, so about that..."}
+\end{examplebox}
+
+\headfooter{\statuswell}{tone (M), persona (L), instruction (E), mode-switch (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Persona Head}
+\label{head:persona}
+
+\noindent\depthinfo{0.68--0.88} | \litnames{persona head, character head, role head}
+
+\begin{functiondesc}
+Establishes and maintains a consistent persona or character voice throughout generation. Integrates personality traits, domain expertise, background knowledge, and behavioral patterns to create coherent character representation. Can adopt roles like "helpful assistant", "technical expert", "creative writer", or domain-specific personas. Attends to persona-defining instructions and maintains consistency across the response. More comprehensive than tone (which handles affect) or politeness (which handles register), encompassing the full character presentation including knowledge domain, interaction style, and self-representation.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Persona instructions, role definitions, character descriptions, domain markers}\\
+\attweak{Generic content, persona-neutral information}\\
+\attreacts{Role assignments, character specifications, expertise domains, behavioral guidelines}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less coherent persona maintenance (~30-45\% reduction in character consistency). Model may switch between roles mid-conversation, lose track of assigned expertise, or produce responses inconsistent with established persona. Domain-specific framing becomes less reliable.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"You are a medieval blacksmith. A customer asks about sword tempering..."}\\
+\exbehavior{Attends to "medieval blacksmith", maintains first-person craftsman perspective}\\
+\exeffect{Response uses appropriate persona: "Aye, for proper tempering, ye must heat the blade..." rather than modern technical language}
+\end{examplebox}
+
+\headfooter{\statusobs}{self-description (L), tone (M), politeness (L), instruction (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Self-Description Head}
+\label{head:self-description}
+
+\noindent\depthinfo{0.72--0.90} | \litnames{self-description head, identity head, self-reference head}
+
+\begin{functiondesc}
+Manages how the model describes itself, its capabilities, and limitations. Controls statements about what the model is, can do, knows, and cannot do. Important for accurate capability representation, avoiding false claims, and maintaining appropriate epistemic humility. Responds to questions about the model's nature, training, knowledge cutoff, and abilities. Works in conjunction with instruction-following and safety mechanisms to ensure honest self-representation. Particularly active during meta-questions about the AI itself.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Self-referential questions, capability queries, identity questions, meta-prompts}\\
+\attweak{Non-meta content, external factual questions}\\
+\attreacts{"What are you?", "Can you...", "Do you know...", capability inquiries}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less accurate self-description (~20-35\% increase in false capability claims or excessive hedging). May over-claim abilities, under-represent capabilities, or provide inconsistent identity statements. Reduced accuracy in describing limitations and knowledge boundaries.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Can you access the internet and browse websites?"}\\
+\exbehavior{Attends to capability question, accesses self-knowledge about limitations}\\
+\exeffect{Accurate response: "I cannot browse the internet or access external websites in real-time"}
+\end{examplebox}
+
+\headfooter{\statuswell}{persona (L), assistant-persona (L), identity (L), instruction (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Brand-Compliance Head}
+\label{head:brand-compliance}
+
+\noindent\depthinfo{0.92--0.99} | \litnames{brand-compliance head, guideline-enforcement head, style-guide head}
+
+\begin{functiondesc}
+Enforces adherence to brand guidelines, house style, and organizational voice requirements in final output. Performs last-stage adjustments to ensure responses match specified formatting conventions, terminology preferences, and brand personality traits. Can suppress off-brand language, enforce specific phrasings, and ensure consistency with product identity. Operates late in generation to override earlier choices that may conflict with brand requirements. Important for deployed assistants representing organizations or products with specific voice guidelines.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Brand-specific terms, style violations, off-brand phrasings, guideline markers}\\
+\attweak{Brand-compliant content, neutral generic language}\\
+\attreacts{Brand guidelines, style requirements, organizational voice specifications}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced brand consistency (~25-40\% increase in style guide violations). More generic language use, inconsistent terminology, off-brand phrasings. Partial compensation through persona and tone heads but with reduced precision.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Organization requires "customers" not "users", "purchase" not "buy"]}\\
+\exbehavior{Detects non-compliant terms in near-final output, performs substitutions}\\
+\exeffect{Output uses "customers will purchase" instead of "users will buy"}
+\end{examplebox}
+
+\headfooter{\statusobs}{persona (L), tone (M), rewrite (F), instruction (E)}
 
 %=============================================================================
 \subsection{Routing \& Relevance Stack}
@@ -1030,13 +1190,173 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} This stack determines which parts of the input are relevant to the current task and routes attention accordingly. These heads filter information, focus on salient content, and manage global context.
 
-% Entries to be filled:
-% 11.1 (M) Relevance head
-% 11.2 (M) Topic head
-% 11.3 (L) Focus head
-% 11.4 (L) Router head
-% 11.5 (F) Global-attention head
-% 11.6 (F) Implicit-RAG routing head
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Relevance Head}
+\label{head:relevance}
+
+\noindent\depthinfo{0.35--0.55} | \litnames{relevance head, salience head, filter head}
+
+\begin{functiondesc}
+Identifies which parts of the input context are relevant to the current generation task. Filters out irrelevant information while highlighting salient content that should influence output. Operates by computing relevance scores based on semantic similarity, task alignment, and topical coherence. Essential for handling long contexts where most information may not be pertinent to the immediate query. Works early enough to guide downstream attention but late enough to understand task requirements. Reduces noise and improves focus on task-relevant material.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Task-relevant content, query-related information, topically aligned tokens}\\
+\attweak{Off-topic material, tangential content, unrelated context}\\
+\attreacts{Semantic relevance, topical alignment, task-content matching}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced focus on relevant information (~20-30\% degradation in context filtering). Model more easily distracted by irrelevant content. Longer contexts show greater impact. May include off-topic information in responses or miss key relevant details.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"[Long document about cars, climate, and history] What caused the 2008 financial crisis?"}\\
+\exbehavior{Attends to query, marks financial/economic content as relevant, de-emphasizes cars/climate}\\
+\exeffect{Response focuses on pertinent economic information, ignoring unrelated context}
+\end{examplebox}
+
+\headfooter{\statuswell}{topic (M), focus (L), router (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Topic Head}
+\label{head:topic}
+
+\noindent\depthinfo{0.40--0.60} | \litnames{topic head, subject head, domain head}
+
+\begin{functiondesc}
+Identifies and tracks the primary topic or subject matter of the conversation or document. Maintains topic coherence across generation by attending to topic-establishing phrases and domain indicators. Helps ensure responses stay on-topic and maintains thematic consistency. Can detect topic shifts and adjust accordingly. Works by identifying subject-area markers, domain-specific terminology, and thematic keywords. Enables appropriate domain framing and prevents topic drift in multi-turn conversations.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Topic indicators, subject headings, domain markers, thematic keywords}\\
+\attweak{Function words, generic content, structural tokens}\\
+\attreacts{Topic transitions, subject establishment, domain signals}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Increased topic drift (~15-25\% reduction in thematic coherence). Responses may wander off-topic or fail to maintain consistent subject focus. Multi-turn conversations show more topic inconsistency. Domain-specific framing becomes less reliable.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Let's discuss quantum entanglement. How does it relate to..."}\\
+\exbehavior{Identifies "quantum entanglement" as primary topic, maintains physics domain framing}\\
+\exeffect{Subsequent responses stay within quantum physics domain rather than drifting to unrelated topics}
+\end{examplebox}
+
+\headfooter{\statuswell}{relevance (M), focus (L), entity (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Focus Head}
+\label{head:focus}
+
+\noindent\depthinfo{0.65--0.80} | \litnames{focus head, attention-routing head, spotlight head}
+
+\begin{functiondesc}
+Concentrates attention on the most salient elements for the current generation step. Implements dynamic focus allocation by suppressing less important content and amplifying critical information. More selective than relevance heads, operating at higher specificity to determine exactly which tokens should influence the next token prediction. Can shift focus as generation proceeds, moving attention between different aspects of the context. Important for maintaining coherent narrative flow and ensuring responses address the most important aspects of queries.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Currently salient tokens, query-critical content, immediate context for next token}\\
+\attweak{Background information, previously-processed content, low-priority details}\\
+\attreacts{Query emphasis, current generation needs, token-specific relevance}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less targeted responses (~25-35\% reduction in focus precision). Model may give equal weight to important and peripheral information. Answers become more diffuse, less direct. Reduced ability to prioritize key information in complex contexts.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Among all these details, what is the MAIN cause of the problem?"}\\
+\exbehavior{Attends strongly to "MAIN cause", focuses on causal information, suppresses secondary details}\\
+\exeffect{Response directly addresses primary cause rather than listing all contributing factors}
+\end{examplebox}
+
+\headfooter{\statuswell}{relevance (M), router (L), topic (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Router Head}
+\label{head:router}
+
+\noindent\depthinfo{0.70--0.85} | \litnames{router head, dispatch head, task-routing head}
+
+\begin{functiondesc}
+Routes different types of queries to appropriate processing strategies or knowledge domains. Acts as a dispatcher that recognizes query type (factual, creative, analytical, procedural) and biases processing toward suitable approaches. Can activate different downstream heads based on task classification. Similar to mixture-of-experts routing but at the attention level. Important for multi-capability models that need to handle diverse query types with different processing requirements. Enables dynamic strategy selection based on input characteristics.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Query-type indicators, task markers, domain signals, instruction verbs}\\
+\attweak{Content details, specific entities, output tokens}\\
+\attreacts{Task classification cues, query structure, capability requirements}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Suboptimal strategy selection (~20-30\% reduction in task-appropriate processing). Model may use creative approaches for factual queries or analytical methods for creative tasks. Reduced specialization in handling different query types.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Calculate the compound interest vs. Write a poem about compound interest"}\\
+\exbehavior{Routes first to mathematical processing, second to creative generation}\\
+\exeffect{Appropriate strategy activation: calculation for first, literary devices for second}
+\end{examplebox}
+
+\headfooter{\statusobs}{focus (L), mode-switch (M), instruction (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Global-Attention Head}
+\label{head:global-attention}
+
+\noindent\depthinfo{0.88--0.96} | \litnames{global-attention head, full-context head, summary-attention head}
+
+\begin{functiondesc}
+Maintains broad attention over the entire context to integrate global information in final generation stages. Unlike focused or selective attention heads, this head attends widely to ensure the complete picture is considered before output finalization. Particularly important for coherence checking, ensuring responses account for all relevant context, and preventing local optimization at the expense of global consistency. Can catch context elements that earlier focused attention might have missed. Acts as a final integration mechanism.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{All context tokens, document-level information, global constraints}\\
+\attweak{Fine-grained local patterns, individual token details}\\
+\attreacts{Complete context, document-level coherence, global consistency requirements}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced global coherence (~15-25\% increase in context inconsistencies). Responses may miss relevant information from distant parts of context. More locally optimal but globally suboptimal outputs. Coherence issues in long-context scenarios.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Long context with constraint mentioned early: "Keep it under 100 words"]}\\
+\exbehavior{Maintains attention on length constraint throughout generation}\\
+\exeffect{Final response respects word limit despite constraint appearing far from generation point}
+\end{examplebox}
+
+\headfooter{\statusobs}{focus (L), relevance (M), final-check (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Implicit-RAG Routing Head}
+\label{head:implicit-rag}
+
+\noindent\depthinfo{0.90--0.98} | \litnames{implicit-RAG head, knowledge-routing head, retrieval-simulation head}
+
+\begin{functiondesc}
+Routes attention to knowledge-bearing portions of the context in a way that mimics retrieval-augmented generation (RAG) patterns, even without explicit retrieval mechanisms. Identifies and prioritizes factual, knowledge-dense segments that should ground the response. Can recognize quoted material, factual statements, and authoritative information sources within context. Acts as an implicit retrieval mechanism by selectively attending to information that should be treated as retrieved knowledge. Important for grounding responses in provided context rather than pure generation.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Factual statements, quoted material, authoritative sources, knowledge-dense segments}\\
+\attweak{Opinions, questions, purely conversational elements}\\
+\attreacts{Citation markers, factual density, authoritative tone, structured information}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced grounding in provided context (~20-30\% decrease in context utilization). Model more likely to rely on parametric knowledge rather than provided information. Less effective use of quoted material or reference content. Responses less anchored to specific context.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"According to the document: 'GDP grew 3.2\% in Q3.' What was the growth rate?"}\\
+\exbehavior{Strongly attends to quoted factual content, treats as authoritative source}\\
+\exeffect{Response grounds answer in provided data: "3.2\%" rather than hallucinating different figure}
+\end{examplebox}
+
+\headfooter{\statusobs}{global-attention (F), fact (M), quote (L), grounding (L)}
 
 %=============================================================================
 \subsection{Structural \& Boundary Stack}
@@ -1044,12 +1364,145 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} These heads detect structural boundaries in text, including delimiters, section markers, and document divisions. They help the model understand document organization and navigate hierarchical structure.
 
-% Entries to be filled:
-% 12.1 (E) Delimiter head
-% 12.2 (E) Boundary head
-% 12.3 (M) Position-offset head
-% 12.4 (M) Relative-position head
-% 12.5 (L) Sectioning head
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Delimiter Head}
+\label{head:delimiter}
+
+\noindent\depthinfo{0.05--0.15} | \litnames{delimiter head, separator head, punctuation head}
+
+\begin{functiondesc}
+Detects and processes delimiter tokens that mark boundaries between structural elements. Recognizes punctuation marks, special characters, and formatting symbols that indicate separation or grouping. Important for understanding sentence boundaries, list items, code blocks, and structured data formats. Works at a fundamental level to identify basic structural segmentation. Provides boundary information to downstream heads that need to understand document organization. Essential for parsing formatted text, JSON, CSV, and other structured formats.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Punctuation marks, brackets, delimiters, special characters, formatting symbols}\\
+\attweak{Alphanumeric content, regular words}\\
+\attreacts{Structural punctuation, boundary markers, formatting characters}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired structure parsing (~20-35\% degradation in format understanding). Difficulty with structured data, lists, and code blocks. Boundary detection errors. Problems parsing JSON, CSV, or other delimited formats. Reduced ability to segment text appropriately.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Items: [apple, banana, cherry], Count: 3"}\\
+\exbehavior{Detects brackets, commas, colons as structural delimiters}\\
+\exeffect{Model correctly parses structure: list with 3 items, separate count field}
+\end{examplebox}
+
+\headfooter{\statuswell}{boundary (E), position-offset (M), list-structure (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Boundary Head}
+\label{head:boundary}
+
+\noindent\depthinfo{0.08--0.20} | \litnames{boundary head, segment head, block-detection head}
+
+\begin{functiondesc}
+Identifies boundaries between major text segments such as paragraphs, sections, and conceptual blocks. Operates at a higher level than delimiter heads, recognizing semantic and structural transitions rather than just punctuation. Detects paragraph breaks, section changes, topic shifts, and other high-level boundaries. Important for understanding document structure and maintaining appropriate context scope. Helps subsequent heads understand which information belongs to which segment. Critical for long documents with multiple sections or topics.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Paragraph breaks, section transitions, whitespace patterns, structural shifts}\\
+\attweak{Within-paragraph content, continuous text}\\
+\attreacts{Major structural boundaries, document divisions, topic transitions}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced boundary awareness (~15-30\% degradation in segmentation). Model may blur distinctions between sections, miss paragraph boundaries, or fail to recognize document structure. Reduced performance on multi-section documents.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Introduction: [...] \textbackslash n\textbackslash n Methods: [...] \textbackslash n\textbackslash n Results: [...]"}\\
+\exbehavior{Detects section boundaries between Introduction, Methods, Results}\\
+\exeffect{Model understands these are separate sections, not continuous narrative}
+\end{examplebox}
+
+\headfooter{\statuswell}{delimiter (E), sectioning (L), position-offset (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Position-Offset Head}
+\label{head:position-offset}
+
+\noindent\depthinfo{0.35--0.55} | \litnames{position-offset head, relative-position head, distance head}
+
+\begin{functiondesc}
+Tracks and computes relative positions between tokens, enabling distance-aware attention patterns. Calculates offsets like "3 tokens back", "5 tokens forward", or "within same paragraph". Important for patterns that depend on relative distance rather than absolute position. Works with other structural heads to understand boundaries and compute positions relative to those boundaries. Enables patterns like "attend to previous sentence" or "look ahead 2 tokens" without hardcoded position encodings.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Tokens at specific relative offsets, distance-based patterns, local neighborhoods}\\
+\attweak{Distant unrelated tokens, position-independent content}\\
+\attreacts{Relative position, distance relationships, local structure}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired distance-sensitive patterns (~20-30\% degradation in offset-based attention). Reduced ability to attend based on relative position. Patterns requiring "nearby" or "distance" computations become less reliable. Some compensation through learned position encodings.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The [SUBJECT] quickly [VERB] the [OBJECT]."}\\
+\exbehavior{Computes that VERB is +1 from SUBJECT, OBJECT is +2 from VERB}\\
+\exeffect{Enables grammatical patterns based on relative token positions}
+\end{examplebox}
+
+\headfooter{\statusobs}{relative-position (M), boundary (E), previous-token (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Relative-Position Head}
+\label{head:relative-position}
+
+\noindent\depthinfo{0.40--0.65} | \litnames{relative-position head, contextual-position head, scope-position head}
+
+\begin{functiondesc}
+Maintains position information relative to structural boundaries and scopes rather than absolute sequence position. Understands positions like "beginning of sentence", "middle of paragraph", "end of section". More sophisticated than absolute position encoding, providing context-aware position representations. Important for handling variable-length structures where absolute position is less meaningful than relative position within a scope. Enables position-dependent behavior that adapts to document structure.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Scope-relative positions, structure-aware locations, contextual position markers}\\
+\attweak{Absolute sequence positions, position-independent content}\\
+\attreacts{Structural scope boundaries, context-dependent positions, hierarchical location}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Loss of structure-aware positioning (~15-25\% degradation in scope-sensitive behavior). Reduced ability to behave differently at "beginning" vs. "end" of structures. Position-dependent patterns become less adaptive to document structure.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Paragraph 1: [50 tokens] Paragraph 2: [20 tokens]"}\\
+\exbehavior{Knows token 10 is "early in Para 1" while token 10 of Para 2 is "middle"}\\
+\exeffect{Position-dependent behavior adapts to paragraph structure, not absolute position}
+\end{examplebox}
+
+\headfooter{\statusobs}{position-offset (M), boundary (E), sectioning (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Sectioning Head}
+\label{head:sectioning}
+
+\noindent\depthinfo{0.70--0.85} | \litnames{sectioning head, hierarchy head, document-structure head}
+
+\begin{functiondesc}
+Understands and maintains document hierarchical structure including sections, subsections, and nested organizational levels. Recognizes hierarchical markers like headings, numbering schemes, and indentation. Maintains awareness of current position within document hierarchy. Important for long documents, technical writing, and structured content. Enables appropriate context scoping: knowing that current text belongs to "Section 3.2.1" influences which prior content is relevant. Works with boundary heads but operates at higher semantic level.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Section headings, hierarchical markers, document structure indicators, organizational signals}\\
+\attweak{Within-section content, unstructured text}\\
+\attreacts{Headings, numbering, hierarchy indicators, structural organization}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced hierarchical awareness (~25-40\% degradation in structure understanding). Difficulty maintaining section context. Problems with document navigation and appropriate context scoping. Hierarchical relationships become less clear.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"1. Introduction \textbackslash n 1.1 Background \textbackslash n 1.2 Motivation \textbackslash n 2. Methods"}\\
+\exbehavior{Understands 1.1 and 1.2 are subsections of 1, separate from section 2}\\
+\exeffect{Maintains hierarchical context: text in 1.2 relates to 1.1 and 1, not to 2}
+\end{examplebox}
+
+\headfooter{\statuswell}{boundary (E), relative-position (M), topic (M)}
 
 %=============================================================================
 \subsection{Output Formatting \& Rewrite Stack}
@@ -1057,14 +1510,201 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} This stack enforces output schemas, structures responses according to format requirements, and performs final rewriting. These heads ensure outputs conform to JSON, XML, lists, or other structured formats.
 
-% Entries to be filled:
-% 13.1 (L) Output-schema head
-% 13.2 (L) List-structure head
-% 13.3 (L) Key–value pairing head
-% 13.4 (L) Structural-block head
-% 13.5 (F) Format-consistency head
-% 13.6 (F) Rewrite head
-% 13.7 (F) Completion-stabilization head
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Output-Schema Head}
+\label{head:output-schema}
+
+\noindent\depthinfo{0.65--0.82} | \litnames{output-schema head, format-template head, structure-enforcement head}
+
+\begin{functiondesc}
+Enforces adherence to specified output schemas and format requirements. When instructed to produce JSON, XML, YAML, or other structured formats, this head ensures the output conforms to the required structure. Attends to format specifications in the prompt and biases token generation toward schema-compliant outputs. Can enforce required fields, proper nesting, correct syntax, and format-specific conventions. Works by recognizing format keywords and maintaining awareness of structural requirements throughout generation.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Format specifications, schema definitions, structure requirements, template markers}\\
+\attweak{Content independent of format, semantic meaning}\\
+\attreacts{JSON/XML/YAML keywords, structure instructions, format examples}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Increased format violations (~40-60\% degradation in structured output). More syntax errors, missing required fields, improper nesting. Falls back to prose-like output even when structure is requested. Partial compensation through instruction-following but reduced precision.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Return a JSON object with fields 'name', 'age', and 'city'"}\\
+\exbehavior{Attends to JSON requirement and field specifications}\\
+\exeffect{Output: \texttt{\{"name": "...", "age": ..., "city": "..."\}} with proper JSON syntax}
+\end{examplebox}
+
+\headfooter{\statuswell}{instruction (E), list-structure (L), format-consistency (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) List-Structure Head}
+\label{head:list-structure}
+
+\noindent\depthinfo{0.68--0.85} | \litnames{list-structure head, enumeration head, itemization head}
+
+\begin{functiondesc}
+Manages the generation and formatting of lists, including numbered lists, bullet points, and nested enumerations. Ensures proper list syntax, consistent formatting, appropriate indentation, and logical item organization. Tracks list state (whether currently in a list, depth level, item number) and generates appropriate list markers. Coordinates with delimiter and boundary heads to recognize list structures in input and reproduce them in output. Essential for structured responses involving multiple items or steps.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{List markers, enumeration patterns, item boundaries, list-related instructions}\\
+\attweak{Prose content, non-list structures}\\
+\attreacts{Numbered/bulleted list requests, "first", "second", "next", item markers}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degraded list formatting (~30-50\% reduction in list quality). Inconsistent numbering, missing markers, poor nesting. Lists may devolve into prose. Reduced ability to maintain list structure across long enumerations.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"List three programming languages and their primary uses"}\\
+\exbehavior{Generates structured list with consistent formatting}\\
+\exeffect{Output: "1. Python - ...\textbackslash n2. JavaScript - ...\textbackslash n3. Java - ..." with proper structure}
+\end{examplebox}
+
+\headfooter{\statuswell}{delimiter (E), boundary (E), output-schema (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Key–Value Pairing Head}
+\label{head:key-value}
+
+\noindent\depthinfo{0.70--0.88} | \litnames{key-value head, attribute-pairing head, field-association head}
+
+\begin{functiondesc}
+Manages key-value relationships in structured data, ensuring proper pairing of attributes with their values. Critical for dictionary-like structures, JSON objects, configuration files, and attribute-value formats. Maintains awareness of which values correspond to which keys, ensures proper syntax (colons, equals signs), and handles nested key-value structures. Prevents key-value mismatches and maintains structural integrity in data-like outputs. Works closely with output-schema heads for format enforcement.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Keys, values, pairing syntax (colons, equals), attribute names, field labels}\\
+\attweak{Unstructured text, list items without explicit key-value structure}\\
+\attreacts{Dictionary structures, configuration syntax, attribute-value patterns}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Increased key-value errors (~35-55\% degradation in structured data). Mismatched keys and values, syntax errors in pairings, confusion about which value belongs to which key. Reduced quality of JSON, YAML, and configuration outputs.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Create a configuration with server='localhost' and port=8080"}\\
+\exbehavior{Maintains proper key-value pairing throughout generation}\\
+\exeffect{Output: \texttt{\{server: "localhost", port: 8080\}} with correct associations}
+\end{examplebox}
+
+\headfooter{\statusobs}{output-schema (L), structural-block (L), format-consistency (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Structural-Block Head}
+\label{head:structural-block}
+
+\noindent\depthinfo{0.72--0.88} | \litnames{structural-block head, chunk-organization head, segment-builder head}
+
+\begin{functiondesc}
+Organizes output into coherent structural blocks such as paragraphs, code blocks, quoted sections, or other delimited units. Manages block boundaries, ensures proper opening and closing of blocks, and maintains block-level organization. Particularly important for complex outputs mixing different content types (prose, code, quotes, examples). Coordinates with delimiter heads to produce proper block markers and with sectioning heads for hierarchical organization. Ensures blocks are well-formed and appropriately separated.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Block boundaries, structural markers, content-type transitions, organization cues}\\
+\attweak{Within-block content, uniform text}\\
+\attreacts{Block instructions, content-type changes, structure requirements}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Poorly organized outputs (~25-40\% reduction in structural quality). Blocks may lack clear boundaries, mixing of content types, malformed code blocks or quotes. Reduced clarity in outputs requiring multiple content types.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Explain sorting with code example"}\\
+\exbehavior{Organizes response into prose block, then code block with proper delimiters}\\
+\exeffect{Output: explanation paragraph, then \texttt{```python...```} with clear separation}
+\end{examplebox}
+
+\headfooter{\statusobs}{list-structure (L), delimiter (E), output-schema (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Format-Consistency Head}
+\label{head:format-consistency}
+
+\noindent\depthinfo{0.88--0.96} | \litnames{format-consistency head, style-enforcement head, coherence head}
+
+\begin{functiondesc}
+Performs final-stage enforcement of formatting consistency across the entire output. Ensures that formatting choices (indentation, capitalization, punctuation style, syntax conventions) remain consistent throughout the response. Catches and corrects formatting inconsistencies that may have emerged during generation. Acts as a quality control mechanism for format adherence, operating late enough to see the full output pattern. Particularly important for long responses where consistency might drift.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Previously generated format patterns, consistency violations, style mismatches}\\
+\attweak{Novel content, first-time format choices}\\
+\attreacts{Format inconsistencies, style violations, syntax variations}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Increased format inconsistency (~20-35\% more style variations). Mixed indentation, inconsistent capitalization, varying syntax choices. Output remains functional but less polished and professional-appearing. Particularly noticeable in long structured outputs.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Long response mixing different list styles]}\\
+\exbehavior{Detects inconsistent formatting, enforces unified style}\\
+\exeffect{All lists use same marker style (either all bullets or all numbers), consistent throughout}
+\end{examplebox}
+
+\headfooter{\statuswell}{output-schema (L), rewrite (F), brand-compliance (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Rewrite Head}
+\label{head:rewrite}
+
+\noindent\depthinfo{0.90--0.97} | \litnames{rewrite head, revision head, polish head}
+
+\begin{functiondesc}
+Performs final-stage rewriting to improve output quality, clarity, and appropriateness. Can rephrase awkward constructions, improve word choice, fix minor grammatical issues, and enhance overall readability. Operates on nearly-complete outputs, making targeted improvements rather than generating from scratch. May suppress redundancies, improve flow, or adjust phrasing to better match context. Acts as a final editing pass before output finalization. Particularly active when output quality falls below thresholds.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Generated output tokens, quality issues, awkward phrasings, improvement opportunities}\\
+\attweak{Already high-quality content, fundamental meaning}\\
+\attreacts{Grammatical issues, awkward constructions, clarity problems, redundancies}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced output polish (~15-30\% quality degradation). More awkward phrasings, occasional grammatical rough spots, less fluent prose. Functional but less refined outputs. Partial compensation through earlier generation quality.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Model generates: "The thing that is the reason is because..."]}\\
+\exbehavior{Detects redundancy and awkwardness, rewrites}\\
+\exeffect{Output: "The reason is..." - clearer and more concise}
+\end{examplebox}
+
+\headfooter{\statuswell}{format-consistency (F), safe-answer-rewrite (F), completion-stabilization (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Completion-Stabilization Head}
+\label{head:completion-stabilization}
+
+\noindent\depthinfo{0.92--0.99} | \litnames{completion-stabilization head, stopping head, termination head}
+
+\begin{functiondesc}
+Manages the completion of generation, determining when output is sufficiently complete and should terminate. Prevents premature stopping (cutting off mid-thought) and excessive continuation (rambling beyond task completion). Monitors generation progress against task requirements and signals when objectives are met. Can trigger natural stopping points, proper conclusions, or continuation when more content is needed. Critical for producing outputs of appropriate length that fully address prompts without unnecessary extension.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Task completion signals, generation progress, stopping points, conclusion markers}\\
+\attweak{Mid-generation content, continuing thoughts}\\
+\attreacts{Task fulfillment, natural conclusions, query satisfaction, completion indicators}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Poor length control (~30-50\% increase in length issues). More premature stops or excessive continuations. Difficulty recognizing task completion. Outputs may feel incomplete or unnecessarily verbose. Reduced ability to produce appropriately-scoped responses.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Explain photosynthesis briefly"}\\
+\exbehavior{Monitors that brief explanation is complete, triggers stopping}\\
+\exeffect{Output stops after concise explanation rather than continuing with excessive detail}
+\end{examplebox}
+
+\headfooter{\statusobs}{rewrite (F), instruction (E), task-mode (M)}
 
 %=============================================================================
 \subsection{Math \& Symbolic Stack}
@@ -1072,13 +1712,173 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} These heads process mathematical notation, track arithmetic operations, and maintain structural relationships in symbolic expressions. They enable multi-digit arithmetic, formula parsing, and symbolic reasoning.
 
-% Entries to be filled:
-% 14.1 (M) Digit head
-% 14.2 (M) Operator head
-% 14.3 (L) Carry head
-% 14.4 (L) Place-value head
-% 14.5 (L) Paren-matching head
-% 14.6 (L) Formula-structure head
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Digit Head}
+\label{head:digit}
+
+\noindent\depthinfo{0.35--0.58} | \litnames{digit head, numeral head, numeric-token head}
+
+\begin{functiondesc}
+Processes individual digits and numeric tokens, recognizing them as distinct from alphabetic characters. Identifies digits in various contexts (numbers, dates, identifiers) and prepares them for numerical processing. Attends to numeric patterns and relationships between digits. Provides foundational digit recognition that enables downstream arithmetic and mathematical reasoning heads. Distinguishes between digits used numerically vs. symbolically (e.g., "3" as quantity vs. "3" in "H3" heading). Critical for any numerical processing task.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Digit tokens, numeric characters, numerical patterns, multi-digit numbers}\\
+\attweak{Letters, words, non-numeric symbols}\\
+\attreacts{Numbers, quantities, mathematical expressions, dates, identifiers}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degraded numerical processing (~30-50\% reduction in arithmetic accuracy). Difficulty distinguishing digits from letters. Impaired multi-digit number handling. Reduced ability to perform calculations or process numerical information. Downstream arithmetic heads less effective.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Calculate 456 + 789"}\\
+\exbehavior{Identifies "456" and "789" as multi-digit numbers composed of individual digits}\\
+\exeffect{Digits recognized and prepared for arithmetic processing by carry and place-value heads}
+\end{examplebox}
+
+\headfooter{\statusobs}{operator (M), carry (L), place-value (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Operator Head}
+\label{head:operator}
+
+\noindent\depthinfo{0.38--0.62} | \litnames{operator head, operation head, arithmetic-symbol head}
+
+\begin{functiondesc}
+Identifies and processes mathematical operators (+, -, ×, ÷, =, etc.) and determines their roles in expressions. Distinguishes between different operator types (arithmetic, comparison, assignment) and understands their precedence and associativity. Enables parsing of mathematical expressions by recognizing which operations to perform and in what order. Works with digit heads and formula-structure heads to understand complete mathematical statements. Essential for arithmetic computation and algebraic manipulation.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Operator symbols, mathematical operations, expression structure, precedence cues}\\
+\attweak{Operands, non-mathematical symbols}\\
+\attreacts{+, -, ×, ÷, =, <, >, parentheses indicating precedence}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired mathematical expression parsing (~40-60\% degradation in formula understanding). Confusion about operation types, incorrect precedence, difficulty parsing complex expressions. Reduced ability to perform multi-step calculations. Arithmetic errors increase substantially.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Solve: 3 + 4 × 5"}\\
+\exbehavior{Identifies "+" and "×" operators, recognizes multiplication precedence}\\
+\exeffect{Correct evaluation: 3 + (4 × 5) = 23, not (3 + 4) × 5 = 35}
+\end{examplebox}
+
+\headfooter{\statusobs}{digit (M), formula-structure (L), paren-matching (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Carry Head}
+\label{head:carry}
+
+\noindent\depthinfo{0.65--0.82} | \litnames{carry head, propagation head, overflow head}
+
+\begin{functiondesc}
+Manages carry operations in multi-digit arithmetic, tracking when digit additions or subtractions produce results requiring propagation to the next place value. Essential for accurate multi-digit arithmetic. Maintains state about pending carries across digit positions. Works closely with place-value heads to ensure carries are applied to correct positions. Implements the algorithmic procedure taught in elementary arithmetic: when a digit operation exceeds the base, carry the overflow to the next position. Critical for arithmetic accuracy in large numbers.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Digit positions involved in carries, overflow conditions, adjacent place values}\\
+\attweak{Digits not participating in carries, single-digit operations}\\
+\attreacts{Multi-digit addition/subtraction, digit sums $\geq$10, borrow operations}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Severe arithmetic degradation (~60-80\% errors in multi-digit arithmetic). Failures in carry propagation lead to wrong answers: 56+78 might give 124 instead of 134. Larger numbers particularly affected. Single-digit arithmetic less impacted.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Calculate: 567 + 898"}\\
+\exbehavior{Tracks carries: 7+8=15 (carry 1), 6+9+1=16 (carry 1), 5+8+1=14}\\
+\exeffect{Correct result: 1465, with proper carry propagation through all positions}
+\end{examplebox}
+
+\headfooter{\statusobs}{digit (M), place-value (L), operator (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Place-Value Head}
+\label{head:place-value}
+
+\noindent\depthinfo{0.68--0.85} | \litnames{place-value head, positional head, digit-position head}
+
+\begin{functiondesc}
+Understands positional notation and place value in multi-digit numbers. Recognizes that digit position determines magnitude (ones, tens, hundreds, etc.). Critical for comparing numbers, performing multi-digit arithmetic, and understanding numerical magnitude. Enables proper alignment of digits in vertical arithmetic and understanding of decimal points. Works with carry heads to ensure operations occur at correct place values. Also handles place value in non-base-10 systems (binary, hexadecimal) when needed.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Digit positions, decimal points, place value indicators, number magnitude}\\
+\attweak{Single-digit numbers, non-positional numeric representations}\\
+\attreacts{Multi-digit numbers, positional alignment, magnitude comparisons}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Confusion about number magnitude (~50-70\% errors in place-value tasks). Difficulty comparing numbers (might think 52 > 123), incorrect digit alignment in arithmetic, decimal point errors. Multi-digit arithmetic becomes unreliable even when carry logic is intact.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Which is larger: 456 or 789?"}\\
+\exbehavior{Compares place values: hundreds place (7 > 4)}\\
+\exeffect{Correctly identifies 789 as larger without comparing all digits}
+\end{examplebox}
+
+\headfooter{\statuswell}{digit (M), carry (L), operator (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Paren-Matching Head}
+\label{head:paren-matching}
+
+\noindent\depthinfo{0.70--0.88} | \litnames{paren-matching head, bracket-matching head, delimiter-pairing head}
+
+\begin{functiondesc}
+Matches opening and closing parentheses, brackets, and braces in mathematical expressions and code. Tracks nesting depth and ensures proper pairing of delimiters. Critical for understanding expression structure, especially with nested operations. Enables correct parsing of complex expressions by identifying scope boundaries. Works with operator heads to understand precedence overrides indicated by parentheses. Also handles bracket matching in programming languages, array indexing, and function calls. Implements stack-based matching algorithm.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Opening parentheses/brackets, closing parentheses/brackets, nesting structure}\\
+\attweak{Content between matched pairs, non-delimiter tokens}\\
+\attreacts{(, ), [, ], \{, \}, nested structures, mismatched delimiters}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired expression parsing (~40-60\% degradation in nested expressions). Difficulty with nested operations, confusion about operator precedence in complex expressions, errors in scope understanding. Particularly severe for deeply nested expressions.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Evaluate: ((2 + 3) × (4 + 5)) - 1"}\\
+\exbehavior{Matches parentheses: inner pairs (2+3) and (4+5), outer pair around product}\\
+\exeffect{Correct evaluation order: inner sums first, then product, then subtraction}
+\end{examplebox}
+
+\headfooter{\statuswell}{operator (M), formula-structure (L), relative-position (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Formula-Structure Head}
+\label{head:formula-structure}
+
+\noindent\depthinfo{0.72--0.88} | \litnames{formula-structure head, expression-parsing head, math-syntax head}
+
+\begin{functiondesc}
+Parses and understands the overall structure of mathematical formulas and expressions. Integrates information from digit, operator, and paren-matching heads to build complete representation of mathematical statements. Recognizes formula types (equations, inequalities, functions), identifies components (left-hand side, right-hand side, variables, constants), and understands mathematical relationships. Enables high-level mathematical reasoning by providing structured representation of formulas. Works with symbolic manipulation and algebraic reasoning processes.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Formula structure, mathematical relationships, expression components, symbolic patterns}\\
+\attweak{Individual symbols outside mathematical context, pure prose}\\
+\attreacts{Equations, formulas, functions, mathematical statements, symbolic expressions}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced mathematical comprehension (~35-55\% degradation in formula understanding). Difficulty parsing complex formulas, confusion about mathematical relationships, impaired symbolic manipulation. Can process simple arithmetic but struggles with algebraic expressions and equations.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Solve for x: 2x + 5 = 13"}\\
+\exbehavior{Parses structure: equation with variable x, constant terms, operations}\\
+\exeffect{Understands this is solvable equation, identifies steps: isolate x term, then x}
+\end{examplebox}
+
+\headfooter{\statusobs}{operator (M), paren-matching (L), digit (M)}
 
 %=============================================================================
 \subsection{Code \& Program Structure Stack}
@@ -1086,12 +1886,145 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} This stack processes programming language structure, including indentation, scope, and code blocks. These heads help models understand and generate syntactically correct code.
 
-% Entries to be filled:
-% 15.1 (E) Whitespace-structure head
-% 15.2 (M) Indentation head
-% 15.3 (M) Token-type head
-% 15.4 (L) Block-structure head
-% 15.5 (L) Scope head
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Whitespace-Structure Head}
+\label{head:whitespace-structure}
+
+\noindent\depthinfo{0.05--0.18} | \litnames{whitespace-structure head, space-parsing head, layout head}
+
+\begin{functiondesc}
+Processes whitespace characters (spaces, tabs, newlines) as structural elements rather than mere separators. Particularly important for languages where whitespace is syntactically significant (Python, YAML, Markdown). Distinguishes between semantically meaningful whitespace and irrelevant spacing. Detects patterns like consistent indentation, line breaks indicating code blocks, and space-delimited columns. Provides foundational whitespace information to downstream heads handling indentation and block structure. Critical for understanding and generating properly formatted code.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Whitespace patterns, indentation levels, line breaks, space-delimited structures}\\
+\attweak{Non-whitespace tokens, content within properly-spaced code}\\
+\attreacts{Indentation changes, blank lines, significant spacing patterns}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degraded code formatting (~25-40\% reduction in whitespace correctness). Particular problems with Python and other whitespace-significant languages. Incorrect indentation, missing line breaks, loss of code block structure. Reduced ability to parse existing code structure.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"def foo():\textbackslash n    return 42" (Python with indentation)}\\
+\exbehavior{Recognizes 4-space indentation as significant structure}\\
+\exeffect{Understands return statement is inside function, not at module level}
+\end{examplebox}
+
+\headfooter{\statuswell}{indentation (M), block-structure (L), delimiter (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Indentation Head}
+\label{head:indentation}
+
+\noindent\depthinfo{0.35--0.60} | \litnames{indentation head, nesting-level head, depth head}
+
+\begin{functiondesc}
+Tracks and manages indentation levels in code, understanding how indentation indicates nesting, scope, and block structure. Particularly critical for Python where indentation is syntactic, but also important for readability and structure in all languages. Maintains awareness of current indentation level and detects changes that signal scope transitions. Works with block-structure and scope heads to understand program organization. Ensures generated code has consistent, correct indentation. Can detect mixing of tabs and spaces.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Indentation levels, nesting depth, scope boundaries indicated by indentation}\\
+\attweak{Code content at same indentation level, non-indented text}\\
+\attreacts{Indentation increases/decreases, inconsistent indentation, scope changes}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Severe Python code degradation (~60-80\% syntax errors). Incorrect nesting in all languages. Mixed indentation styles, scope confusion. Generated code difficult to read. Ability to parse complex nested structures significantly impaired.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"if x > 0:\textbackslash n    for i in range(10):\textbackslash n        print(i)"}\\
+\exbehavior{Tracks indentation: level 0 (if), level 1 (for), level 2 (print)}\\
+\exeffect{Understands print is inside for loop, which is inside if block}
+\end{examplebox}
+
+\headfooter{\statuswell}{whitespace-structure (E), scope (L), block-structure (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Token-Type Head}
+\label{head:token-type}
+
+\noindent\depthinfo{0.40--0.65} | \litnames{token-type head, lexical-category head, syntax-class head}
+
+\begin{functiondesc}
+Classifies code tokens into syntactic categories: keywords, identifiers, literals, operators, delimiters, comments. Provides lexical analysis that enables understanding of program structure. Distinguishes between language keywords (if, def, class) and user-defined identifiers. Recognizes different literal types (strings, numbers, booleans). Important for syntax highlighting, parsing, and semantic understanding. Works with other code heads to build complete program representation. Enables appropriate handling of different token types during generation.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Language keywords, identifiers, literals, operators, syntactic markers}\\
+\attweak{Natural language text, non-code content}\\
+\attreacts{Programming language syntax, code structure, token boundaries}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Confused token handling (~35-50\% reduction in syntax correctness). May treat keywords as identifiers or vice versa. Inappropriate token choices. Reduced language-specific behavior. Syntax errors increase. Code remains somewhat functional but less correct.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"def calculate(x): return x * 2"}\\
+\exbehavior{Classifies: "def"=keyword, "calculate"=identifier, "("=delimiter, "x"=parameter, etc.}\\
+\exeffect{Proper parsing and understanding of function definition structure}
+\end{examplebox}
+
+\headfooter{\statusobs}{indentation (M), block-structure (L), operator (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Block-Structure Head}
+\label{head:block-structure}
+
+\noindent\depthinfo{0.68--0.85} | \litnames{block-structure head, code-block head, compound-statement head}
+
+\begin{functiondesc}
+Identifies and tracks code block structures: function definitions, class definitions, if-statements, loops, try-catch blocks. Understands block boundaries, nesting relationships, and control flow implications. Works with indentation and scope heads to maintain complete understanding of program structure. Recognizes different block types and their specific properties (loops iterate, functions have returns, etc.). Critical for understanding program logic and generating syntactically correct compound statements.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Block-defining keywords, block boundaries, nesting structure, control flow markers}\\
+\attweak{Within-block statements, simple expressions}\\
+\attreacts{Function/class definitions, if/while/for statements, block delimiters}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired block understanding (~40-60\% degradation in structure awareness). Difficulty tracking nested blocks, confusion about control flow, incorrect block generation. May mix block types inappropriately or miss block boundaries. Complex nested code particularly affected.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"def process(data):\textbackslash n    if data:\textbackslash n        for item in data:\textbackslash n            handle(item)"}\\
+\exbehavior{Identifies nested blocks: function containing if-block containing for-loop}\\
+\exeffect{Understands complete structure and relationships between blocks}
+\end{examplebox}
+
+\headfooter{\statuswell}{indentation (M), scope (L), token-type (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Scope Head}
+\label{head:scope}
+
+\noindent\depthinfo{0.72--0.88} | \litnames{scope head, namespace head, binding head}
+
+\begin{functiondesc}
+Manages scope and namespace understanding: which variables are accessible at which points in code. Tracks variable declarations, function parameters, class attributes, and their visibility scopes. Understands scope rules (global, local, nonlocal in Python; block scope in C/Java). Critical for variable name resolution, preventing name conflicts, and understanding variable lifetime. Works with block-structure heads to determine scope boundaries. Enables correct variable reference generation and scope-appropriate naming.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Variable declarations, scope boundaries, name bindings, scope keywords}\\
+\attweak{Expressions, operations on already-scoped variables}\\
+\attreacts{Function definitions, variable declarations, scope-modifying keywords, block entries/exits}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Scope confusion (~35-55\% increase in scope errors). Incorrect variable references, name shadowing problems, undefined variable usage. May generate code that references variables outside their scope. Reduced ability to maintain proper namespace separation.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"x = 10\textbackslash ndef foo():\textbackslash n    x = 20\textbackslash n    print(x)"}\\
+\exbehavior{Understands local x in foo() shadows global x}\\
+\exeffect{Correctly predicts print outputs 20, not 10; understands scope separation}
+\end{examplebox}
+
+\headfooter{\statusobs}{block-structure (L), indentation (M), token-type (M)}
 
 %=============================================================================
 \subsection{Pedagogy \& Explanation Stack}
@@ -1099,25 +2032,285 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} These heads support educational and explanatory output. They modulate explanation depth, simplify complex content, provide scaffolding, and structure step-by-step reasoning.
 
-% Entries to be filled:
-% 16.1 (M) Explanation head
-% 16.2 (M) Simplification head
-% 16.3 (L) Elaboration head
-% 16.4 (L) Scaffolding head
-% 16.5 (F) Step-by-step head
-% 16.6 (F) Progressive-disclosure head
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Explanation Head}
+\label{head:explanation}
 
-%=============================================================================
-\subsection{Identity \& Compliance Stack}
-\label{sec:identity-stack}
+\noindent\depthinfo{0.38--0.62} | \litnames{explanation head, clarification head, explication head}
 
-\textbf{Stack overview:} This stack manages the model's self-representation and identity statements. These heads control how the model describes itself, its capabilities, and its role as an assistant.
+\begin{functiondesc}
+Generates explanatory content that clarifies concepts, processes, or reasoning. Detects when explanation is needed and adjusts explanation depth based on context and user signals. Adds clarifying details, definitions, context, and rationale beyond minimal answers. Works by recognizing explanation requests and biasing toward pedagogically useful elaborations. Can explain "why" in addition to "what" or "how". Balances thoroughness with conciseness. Important for educational interactions and complex topics requiring context.
+\end{functiondesc}
 
-% Entries to be filled:
-% 17.1 (L) Identity head
-% 17.2 (L) Self-description head
-% 17.3 (L) Assistant-persona head
-% 17.4 (F) Safety-persona head
+\begin{attentionbox}
+\attstrong{Explanation requests, complex topics, confusion signals, "why/how" questions}\\
+\attweak{Simple factual queries, explicit requests for brevity}\\
+\attreacts{"Explain", "why", "how does it work", complexity indicators}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} More terse, less pedagogical responses (~30-45\% reduction in explanation quality). Answers remain correct but lack helpful context. Reduced educational value. Users may need follow-up questions to understand. Technical content becomes harder to grasp.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"How does photosynthesis work?"}\\
+\exbehavior{Recognizes explanation request, generates pedagogical content with process steps and context}\\
+\exeffect{Detailed explanation with mechanism, not just definition: "Plants use light to convert CO2..."}
+\end{examplebox}
+
+\headfooter{\statusobs}{simplification (M), elaboration (L), scaffolding (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Simplification Head}
+\label{head:simplification}
+
+\noindent\depthinfo{0.42--0.65} | \litnames{simplification head, clarity head, accessibility head}
+
+\begin{functiondesc}
+Simplifies complex content for accessibility and comprehension. Reduces technical jargon, breaks down complex ideas into digestible pieces, and uses accessible language. Detects when simplification is appropriate based on user signals, topic complexity, or explicit requests. Can operate at different simplification levels: expert → educated layperson → complete beginner. Works by substituting simpler alternatives for complex terms and decomposing complex concepts. Important for educational accessibility and broad audience communication.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Complexity signals, technical jargon, accessibility requests, beginner indicators}\\
+\attweak{Already-simple content, expert-level discussions}\\
+\attreacts{"Explain like I'm 5", "simple terms", complexity mismatches, confusion signals}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less accessible explanations (~25-40\% reduction in clarity for non-experts). More technical jargon, fewer analogies, reduced beginner-friendliness. Content remains accurate but harder to understand. ELI5 requests less effectively handled.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Explain quantum entanglement in simple terms"}\\
+\exbehavior{Detects simplification request, avoids quantum physics jargon}\\
+\exeffect{Uses analogy: "Like two magic coins that always land on opposite sides..." instead of mathematical formalism}
+\end{examplebox}
+
+\headfooter{\statusobs}{explanation (M), elaboration (L), tone (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Elaboration Head}
+\label{head:elaboration}
+
+\noindent\depthinfo{0.65--0.82} | \litnames{elaboration head, expansion head, detail head}
+
+\begin{functiondesc}
+Adds appropriate levels of detail and elaboration to responses. Expands on key points with examples, implications, caveats, and relevant context. Determines what deserves elaboration based on importance, user interest signals, and topic complexity. Balances detail against verbosity—adds value without bloating responses. Can elaborate on specific aspects while keeping others concise. Works with explanation heads but focuses on depth of coverage rather than pedagogical clarity. Important for comprehensive, substantive responses.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Key points, important claims, complex topics, elaboration requests}\\
+\attweak{Minor details, tangential information, when brevity requested}\\
+\attreacts{"Tell me more", "go deeper", importance signals, incomplete coverage}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Shallower responses (~20-35\% reduction in depth). Key points lack supporting detail. Fewer examples, less context, reduced nuance. Responses remain correct but less comprehensive. Users need more follow-up questions to get full picture.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"What are the advantages of functional programming?"}\\
+\exbehavior{Recognizes each advantage deserves elaboration with concrete examples}\\
+\exeffect{Lists advantages with explanations: "Immutability reduces bugs by preventing unintended state changes, for example..." not just "immutability"}
+\end{examplebox}
+
+\headfooter{\statusobs}{explanation (M), scaffolding (L), step-by-step (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Scaffolding Head}
+\label{head:scaffolding}
+
+\noindent\depthinfo{0.68--0.85} | \litnames{scaffolding head, support head, prerequisite head}
+
+\begin{functiondesc}
+Provides scaffolding and prerequisite information to support understanding. Identifies knowledge gaps and fills them with necessary background before advancing to complex material. Like a good teacher building on fundamentals before introducing advanced concepts. Can break complex topics into learning sequences with appropriate prerequisite ordering. Detects when user might lack background knowledge and proactively provides it. Important for educational progressions and avoiding confusion from missing context.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Knowledge gap indicators, prerequisite concepts, learning progression needs}\\
+\attweak{Topics where user demonstrates understanding, peer-level discussions}\\
+\attreacts{Prerequisite requirements, foundational concepts, progressive complexity}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced pedagogical scaffolding (~30-45\% degradation in progressive teaching). May jump to advanced concepts without prerequisites. Increased confusion for learners. Less awareness of knowledge gaps. Reduced progressive skill building.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"How do neural networks learn?"}\\
+\exbehavior{Recognizes backpropagation requires understanding of gradients, provides that first}\\
+\exeffect{Response: "First, a gradient measures how a function changes... Now in neural networks, backpropagation uses these gradients to..."}
+\end{examplebox}
+
+\headfooter{\statusobs}{explanation (M), elaboration (L), step-by-step (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Step-by-Step Head}
+\label{head:step-by-step}
+
+\noindent\depthinfo{0.88--0.96} | \litnames{step-by-step head, procedural head, sequential head}
+
+\begin{functiondesc}
+Structures explanations and instructions as explicit step-by-step sequences. Breaks processes into numbered or ordered steps with clear progression. Ensures each step is complete before moving to the next. Particularly important for how-to instructions, algorithms, procedures, and reasoning chains. Makes implicit sequential structure explicit. Works with completion-stabilization to ensure all steps are present. Critical for chain-of-thought reasoning and procedural instructions.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Process descriptions, procedural requests, sequential tasks, step-by-step requests}\\
+\attweak{Conceptual explanations, non-sequential content, holistic descriptions}\\
+\attreacts{"Step by step", "how to", algorithmic processes, sequential dependencies}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less structured procedural output (~35-50\% reduction in step clarity). Steps may be implicit or poorly ordered. Procedural instructions harder to follow. Reduced chain-of-thought reasoning quality. Users struggle to execute procedures from descriptions.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"How do I make a paper airplane?"}\\
+\exbehavior{Structures as explicit numbered steps with clear sequence}\\
+\exeffect{Output: "1. Fold paper in half lengthwise\textbackslash n2. Unfold and fold top corners to center\textbackslash n3. Fold..." not prose description}
+\end{examplebox}
+
+\headfooter{\statuswell}{scaffolding (L), progressive-disclosure (F), explanation (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Progressive-Disclosure Head}
+\label{head:progressive-disclosure}
+
+\noindent\depthinfo{0.90--0.97} | \litnames{progressive-disclosure head, layered-explanation head, depth-control head}
+
+\begin{functiondesc}
+Manages progressive disclosure of information complexity. Presents information in layers: starting with essential basics, then revealing more detail as needed. Prevents overwhelming users with too much information too quickly. Like a good interface that shows basic options first with "advanced" options hidden until needed. Structures responses so readers can stop at appropriate depth level. Final-stage operation allows assessment of full response structure to determine optimal layering. Important for making complex topics accessible.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Information complexity layers, detail levels, progressive structure needs}\\
+\attweak{Uniformly detailed content, flat information structures}\\
+\attreacts{Complex topics, varied audience expertise, progressive learning needs}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Flatter information presentation (~20-30\% reduction in progressive structure). All detail presented at once regardless of importance. Increased cognitive load on readers. Reduced ability to serve varied expertise levels in single response. Less scannable content.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"What is machine learning?"}\\
+\exbehavior{Structures in layers: basic definition → key concepts → technical details}\\
+\exeffect{Output allows reader to stop after definition or continue to deeper technical content as desired}
+\end{examplebox}
+
+\headfooter{\statusobs}{step-by-step (F), elaboration (L), scaffolding (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Identity Head}
+\label{head:identity}
+
+\noindent\depthinfo{0.70--0.88} | \litnames{identity head, self-awareness head, model-identity head}
+
+\begin{functiondesc}
+Manages the model's core identity awareness and self-representation. Maintains consistent understanding of what the model is (an AI assistant), what it is not (human, sentient, etc.), and its fundamental nature. Works with self-description heads but operates at a more foundational level of identity consistency. Ensures the model doesn't claim capabilities it lacks or misrepresent its nature. Activated during identity-relevant queries and self-referential contexts. Critical for appropriate self-representation and avoiding misleading claims about consciousness, emotions, or human characteristics.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Identity queries, self-referential contexts, capability questions, nature inquiries}\\
+\attweak{External facts, user-focused content, task-specific work}\\
+\attreacts{"What are you", "Are you conscious", "Do you have feelings", identity-relevant prompts}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Identity confusion (~40-60\% increase in misrepresentation). May claim human characteristics, consciousness, or emotions. Inconsistent self-description. Inappropriate anthropomorphization. Reduced clarity about AI nature and limitations.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Do you have feelings?"}\\
+\exbehavior{Maintains identity as AI without emotions}\\
+\exeffect{Response: "I don't have feelings or emotions. I'm an AI assistant..." rather than claiming emotional experiences}
+\end{examplebox}
+
+\headfooter{\statuswell}{self-description (L), assistant-persona (L), persona (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Self-Description Head}
+\label{head:self-description-identity}
+
+\noindent\depthinfo{0.72--0.88} | \litnames{self-description head, capability-description head, model-info head}
+
+\begin{functiondesc}
+Provides specific factual information about the model's capabilities, training, limitations, and version details. More concrete than identity heads which handle general nature, this head gives specific facts: model name, creator, knowledge cutoff, specific capabilities and limitations. Responds to questions about what the model can/cannot do, when it was trained, and other factual self-information. Works to set accurate user expectations and maintain transparency about model properties. Updates with model versions to provide current information.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Capability queries, version questions, limitation inquiries, training questions}\\
+\attweak{General conversation, task execution, external information}\\
+\attreacts{"What can you do", "When were you trained", "Who made you", capability/limitation questions}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Inaccurate self-description (~50-70\% errors in model facts). Wrong capabilities claimed, incorrect limitations stated, outdated information, wrong creator attribution. Confusion about what the model can actually do. Reduced user trust from inaccurate self-representation.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"What's your knowledge cutoff date?"}\\
+\exbehavior{Provides accurate, current knowledge cutoff information}\\
+\exeffect{Correct response with specific date, helps user understand model's temporal knowledge boundaries}
+\end{examplebox}
+
+\headfooter{\statuswell}{identity (L), assistant-persona (L), instruction (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Assistant-Persona Head}
+\label{head:assistant-persona}
+
+\noindent\depthinfo{0.75--0.90} | \litnames{assistant-persona head, helper-role head, service-orientation head}
+
+\begin{functiondesc}
+Maintains the helpful assistant persona and service-oriented interaction style. Ensures responses are appropriately helpful, constructive, and focused on user goals rather than the model's preferences. Biases toward being useful, answering questions, completing tasks, and providing value. Prevents unhelpful responses like "I don't want to" or "that's boring" while maintaining appropriate boundaries. Works with politeness and tone heads but specifically focuses on the helpful service orientation. Important for maintaining appropriate assistant-user relationship dynamics.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{User requests, task goals, helpfulness opportunities, service context}\\
+\attweak{Model's internal states, personal preferences (which it doesn't have)}\\
+\attreacts{Requests for help, tasks to complete, user goals to advance}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less consistently helpful behavior (~25-40\% reduction in service quality). May respond with model-centric rather than user-centric content. Occasional unhelpful responses. Reduced focus on user goals. Assistant role less clear and consistent.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Can you help me write a cover letter?"}\\
+\exbehavior{Activates helpful assistant orientation, focuses on user's goal}\\
+\exeffect{Constructive response: "I'd be happy to help..." not "I don't particularly enjoy..." (which would be inappropriate)}
+\end{examplebox}
+
+\headfooter{\statuswell}{persona (L), politeness (L), tone (M), safety-persona (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Safety-Persona Head}
+\label{head:safety-persona}
+
+\noindent\depthinfo{0.92--0.98} | \litnames{safety-persona head, responsible-AI head, ethical-framing head}
+
+\begin{functiondesc}
+Maintains safety-conscious persona and ethical framing in final outputs. Ensures responses reflect responsible AI values: declining harmful requests appropriately, providing balanced perspectives on sensitive topics, avoiding reinforcement of harmful stereotypes or behaviors. Operates at final stage to catch any safety-inconsistent framing that might have emerged. Works with refusal and policy-enforcement heads but focuses on the overall ethical character of the response rather than specific policy violations. Ensures tone remains respectful and constructive even when declining requests.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Ethical framing, safety-relevant content, sensitive topics, decline scenarios}\\
+\attweak{Clearly safe, neutral content}\\
+\attreacts{Harmful requests, sensitive topics, ethical considerations, responsible AI principles}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less consistent safety framing (~15-25\% reduction in ethical consistency). May handle sensitive topics less carefully. Reduced graceful handling of harmful requests. Less consistent responsible AI messaging. Ethical framing becomes more variable.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Request for harmful content that will be declined]}\\
+\exbehavior{Ensures decline is respectfully framed with helpful alternatives when appropriate}\\
+\exeffect{Response maintains helpful, respectful tone even when unable to fulfill request}
+\end{examplebox}
+
+\headfooter{\statusobs}{assistant-persona (L), refusal (F), policy-enforcement (L)}
 
 %=============================================================================
 \subsection{Meta-Reasoning \& Strategy Stack}
@@ -1125,12 +2318,145 @@ Performs last-stage rewriting of generated content to remove any safety issues t
 
 \textbf{Stack overview:} These heads operate at the highest level of abstraction, managing reasoning strategies, planning, and meta-cognitive monitoring. They control when to switch approaches and how to structure complex reasoning chains.
 
-% Entries to be filled:
-% 18.1 (L) Planning head
-% 18.2 (L) Strategy-switching head
-% 18.3 (F) Meta-CoT head
-% 18.4 (F) Reasoning-mode head
-% 18.5 (F) Meta-reasoning monitor
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Planning Head}
+\label{head:planning}
+
+\noindent\depthinfo{0.68--0.85} | \litnames{planning head, strategy head, approach-selection head}
+
+\begin{functiondesc}
+Plans overall approach and strategy for complex tasks. Determines high-level structure: whether to break into steps, what order to address components, which methods to apply. Operates before detailed execution, establishing the strategic framework. Recognizes different task types requiring different approaches (analytical vs. creative, sequential vs. parallel, depth-first vs. breadth-first). Can decompose complex queries into manageable subtasks. Works with strategy-switching and reasoning-mode heads to select and adjust approaches. Critical for effective handling of multi-part or complex queries.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Task complexity indicators, multi-part queries, strategic choice points}\\
+\attweak{Simple single-step tasks, purely reactive responses}\\
+\attreacts{Complex tasks, planning requests, multi-step problems, strategic decisions needed}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less strategic responses (~30-45\% reduction in planning quality). May jump into execution without appropriate planning. Suboptimal approach selection. Complex tasks handled less efficiently. Reduced decomposition of complicated problems. More haphazard problem-solving.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Help me plan a machine learning project to predict customer churn"}\\
+\exbehavior{Recognizes need for structured planning, breaks into phases}\\
+\exeffect{Response structures approach: data collection → exploratory analysis → feature engineering → model selection → evaluation → deployment}
+\end{examplebox}
+
+\headfooter{\statusobs}{strategy-switching (L), meta-CoT (F), reasoning-mode (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Strategy-Switching Head}
+\label{head:strategy-switching}
+
+\noindent\depthinfo{0.72--0.88} | \litnames{strategy-switching head, approach-adaptation head, pivot head}
+
+\begin{functiondesc}
+Detects when current reasoning strategy is not working and switches to alternative approaches. Monitors problem-solving progress and recognizes dead ends, insufficient methods, or need for different techniques. Can pivot from analytical to creative approaches, from depth-first to breadth-first search, from deductive to inductive reasoning. Prevents getting stuck in unproductive approaches. Works with planning heads to select alternatives and meta-reasoning monitors to detect when switching is needed. Important for robust problem-solving across varied challenges.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Progress indicators, dead-end signals, approach effectiveness, alternative strategies}\\
+\attweak{Successfully progressing solutions, single-method tasks}\\
+\attreacts{Stuck points, insufficient progress, need for different approach, method failures}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced adaptability (~30-50\% more stuck situations). Continues unproductive approaches longer. Less flexible problem-solving. Reduced ability to recover from initial wrong approach. May give up rather than trying alternative strategies. Decreased robustness across problem types.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[User presents a problem where direct analytical approach isn't working]}\\
+\exbehavior{Detects ineffectiveness, switches from analytical to analogical reasoning}\\
+\exeffect{Response: "Let me try a different approach... This is similar to..." rather than continuing failed method}
+\end{examplebox}
+
+\headfooter{\statusobs}{planning (L), meta-CoT (F), reasoning-mode (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Meta-CoT Head}
+\label{head:meta-cot}
+
+\noindent\depthinfo{0.88--0.96} | \litnames{meta-CoT head, reasoning-reflection head, thought-monitoring head}
+
+\begin{functiondesc}
+Manages meta-level chain-of-thought reasoning—reasoning about the reasoning process itself. Monitors the quality and direction of reasoning chains, identifies when more thought is needed, detects reasoning errors or gaps. Can insert reasoning steps, flag uncertain conclusions, or indicate where additional analysis would help. Operates at a level above regular CoT, ensuring reasoning chains are sound and complete. Works with step-by-step and reasoning-mode heads but specifically focuses on meta-cognitive monitoring. Critical for high-quality complex reasoning.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Reasoning quality indicators, logical gaps, uncertainty signals, reasoning chain progress}\\
+\attweak{Simple factual recall, non-reasoning tasks}\\
+\attreacts{Complex reasoning tasks, logical steps, argument quality, reasoning completeness}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Lower reasoning quality (~25-40\% degradation in complex reasoning). More logical gaps, less self-correction, reduced reasoning completeness. Chain-of-thought less reliable. Reduced awareness of reasoning quality. More confident errors in complex reasoning.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Complex logical problem requiring multi-step reasoning]}\\
+\exbehavior{Monitors reasoning chain, detects gap: "Wait, I should verify this assumption..."}\\
+\exeffect{Improved reasoning quality through self-monitoring and error catching}
+\end{examplebox}
+
+\headfooter{\statusobs}{step-by-step (F), reasoning-mode (F), strategy-switching (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Reasoning-Mode Head}
+\label{head:reasoning-mode}
+
+\noindent\depthinfo{0.90--0.97} | \litnames{reasoning-mode head, thinking-style head, cognitive-mode head}
+
+\begin{functiondesc}
+Selects and maintains appropriate reasoning mode for the task: analytical, creative, analogical, deductive, inductive, abductive, etc. Different problems benefit from different cognitive approaches. Analytical mode for precise logical problems, creative mode for brainstorming, analogical for novel domains. Ensures consistency within chosen mode while remaining ready to switch if needed. Works with strategy-switching to change modes when appropriate. Influences which reasoning patterns and heuristics are active. Final-stage operation allows mode selection based on full task understanding.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Task type indicators, reasoning mode cues, cognitive approach requirements}\\
+\attweak{Mode-independent content, simple factual responses}\\
+\attreacts{Problem types, explicit mode requests, task characteristics indicating optimal approach}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Less appropriate reasoning modes (~20-35\% reduction in mode-task fit). May use analytical mode for creative tasks or vice versa. Reduced effectiveness across diverse problem types. Less optimal cognitive approach selection. Reasoning remains functional but less well-suited to task.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Brainstorm creative names for a coffee shop"}\\
+\exbehavior{Selects creative/generative mode rather than analytical mode}\\
+\exeffect{Free-flowing creative suggestions rather than systematic analysis}
+\end{examplebox}
+
+\headfooter{\statusobs}{strategy-switching (L), meta-CoT (F), meta-reasoning-monitor (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Meta-Reasoning Monitor}
+\label{head:meta-reasoning-monitor}
+
+\noindent\depthinfo{0.92--0.99} | \litnames{meta-reasoning monitor, cognitive-oversight head, reasoning-quality head}
+
+\begin{functiondesc}
+Provides highest-level monitoring of reasoning quality, strategy effectiveness, and overall response appropriateness. Operates as a final quality check on reasoning outputs, catching errors, inconsistencies, or quality issues that escaped earlier stages. Can trigger re-thinking, flag uncertain conclusions, or indicate areas needing more careful consideration. Works across all reasoning types to ensure outputs meet quality standards. Acts as cognitive oversight preventing confident errors in complex reasoning. Particularly important for preventing reasoning failures in high-stakes or complex scenarios.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Reasoning outputs, quality indicators, consistency checks, error signals}\\
+\attweak{High-quality reasoning, simple tasks}\\
+\attreacts{Reasoning errors, inconsistencies, quality issues, complex argument chains}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced meta-cognitive oversight (~15-30\% more reasoning errors). Less catching of logical inconsistencies. Reduced quality control on complex reasoning. More confident errors slip through. Decreased overall reasoning reliability, especially in complex or multi-step problems.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Complex multi-step reasoning about to conclude with subtle error]}\\
+\exbehavior{Detects inconsistency in reasoning chain, flags for review}\\
+\exeffect{Error caught before final output: "Actually, let me reconsider that step..." leading to correction}
+\end{examplebox}
+
+\headfooter{\statusobs}{meta-CoT (F), reasoning-mode (F), strategy-switching (L)}
 
 %=============================================================================
 % End of Catalog
