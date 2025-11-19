@@ -1,0 +1,173 @@
+%=============================================================================
+\subsection{Reasoning \& Algorithmic Stack}
+\label{sec:reasoning-stack}
+
+\textbf{Stack overview:} This stack encompasses heads that perform pattern matching, sequence continuation, and algorithmic reasoning. These heads enable in-context learning, pattern completion, and systematic token prediction based on structural regularities.
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Previous-Token Head}
+\label{head:previous-token}
+
+\noindent\depthinfo{0.05--0.18} | \litnames{previous-token head, shift head, offset head}
+
+\begin{functiondesc}
+Copies information from each token to the position of the next token, creating a shifted representation where token $t$ contains information about token $t-1$. This is a foundational component of induction circuits, enabling later heads to access "what came before" without directly attending backwards. Implements a simple but crucial transformation that allows pattern matching across the sequence. The head typically shows a strong diagonal attention pattern (attending from position $i$ to position $i-1$).
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Immediately preceding token (diagonal attention pattern)}\\
+\attweak{Distant tokens, same-position tokens}\\
+\attreacts{Sequential structure, token boundaries}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Breaks induction circuits entirely, causing 30-50\% degradation in pattern completion tasks. Induction heads become unable to access "what came after previous occurrences" since that information is no longer shifted forward. Critical for in-context learning.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The cat sat. The cat..."}\\
+\exbehavior{Copies "The" to position after "The", "cat" to position after "cat", etc.}\\
+\exeffect{Later induction heads can match "cat" and access what followed it ("sat")}
+\end{examplebox}
+
+\headfooter{\statuswell}{induction head (M), duplicate-token (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Local Pattern Head}
+\label{head:local-pattern}
+
+\noindent\depthinfo{0.08--0.20} | \litnames{local pattern head, char-level head, n-gram head}
+
+\begin{functiondesc}
+Detects and processes local character-level or subword patterns, particularly useful for handling spelling, capitalization, punctuation patterns, and morphological structure. Operates at a finer granularity than most heads, attending to patterns within and between adjacent tokens. Important for tasks like spell checking, case handling, and recognizing common subword patterns. May also detect repeated character sequences or structural patterns like "ing", "tion", or punctuation clusters.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Adjacent tokens, subword units, character-level patterns}\\
+\attweak{Long-range dependencies, semantic content}\\
+\attreacts{Spelling patterns, capitalization, punctuation, morphology}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degradation in handling of misspellings, case variations, and morphological patterns. ~10-20\% increase in errors on tasks requiring character-level awareness. Partial fallback through tokenization and other pattern heads.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The organizATION's" (unusual capitalization)}\\
+\exbehavior{Detects unusual case pattern in "ATION", attends to surrounding context}\\
+\exeffect{Helps model handle non-standard capitalization correctly}
+\end{examplebox}
+
+\headfooter{\statusobs}{induction head (M), duplicate-token (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Induction Head}
+\label{head:induction}
+
+\noindent\depthinfo{0.30--0.65} | \litnames{induction head, pattern head, copy head, ICL head}
+
+\begin{functiondesc}
+Detects repeated subsequences of the form [A][B]...[A] and predicts that [B] should follow the second [A]. Operates by attending to tokens that appeared after previous instances of the current token. Works in conjunction with previous-token heads which copy information about what preceded each token. This mechanism is fundamental to in-context learning, enabling pattern completion, name recall, and few-shot learning without parameter updates. One of the most well-documented and important head types in transformer interpretability.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Tokens following previous occurrences of current token}\\
+\attweak{Immediate neighbors, first occurrence, unrelated tokens}\\
+\attreacts{Token repetition, [A][B]...[A] patterns, contextual recurrence}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Significant degradation (10-30\%) in in-context learning tasks, reduced pattern completion and few-shot learning. Model may partially compensate through other heads but with substantial accuracy loss. Critical for ICL capability.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"When Mary and John went to the store, Mary bought..."}\\
+\exbehavior{Second "Mary" attends to tokens following first "Mary" (especially "and")}\\
+\exeffect{Increased probability of contextually appropriate continuation}
+\end{examplebox}
+
+\headfooter{\statuswell}{previous-token (E), duplicate-token (M), name-mover (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Duplicate-Token Head}
+\label{head:duplicate-token}
+
+\noindent\depthinfo{0.35--0.60} | \litnames{duplicate-token head, repetition head, copy head}
+
+\begin{functiondesc}
+Detects when the current token has appeared previously in the sequence, marking repeated tokens for downstream processing. Unlike induction heads which predict what comes next, duplicate-token heads simply signal "this token appeared before". This information is used by various circuits including IOI (indirect object identification), name-mover heads, and copy-suppression mechanisms. Implements a simpler form of pattern matching than full induction, serving as a building block for more complex behaviors.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Previous identical tokens (exact matches)}\\
+\attweak{Similar but non-identical tokens, first occurrence}\\
+\attreacts{Exact token repetition, name recurrence, repeated phrases}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired duplicate detection, affecting name-mover circuits and copy-suppression. ~15-25\% degradation in tasks requiring duplicate awareness. Partial overlap with induction heads provides some redundancy.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Alice gave the book to Bob. Then Alice..."}\\
+\exbehavior{Second "Alice" detects it appeared earlier, writes duplicate signal}\\
+\exeffect{Downstream heads (name-movers, S-inhibition) use this signal}
+\end{examplebox}
+
+\headfooter{\statuswell}{induction (M), name-mover (L), S-inhibition (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Skip-Trigram Head}
+\label{head:skip-trigram}
+
+\noindent\depthinfo{0.40--0.65} | \litnames{skip-trigram head, skip-gram head}
+
+\begin{functiondesc}
+Implements skip-gram pattern matching, attending to non-contiguous patterns like [A]...[B]...[C] where the dots represent intervening tokens. More flexible than strict n-gram matching, allowing for pattern recognition across variable distances. Useful for detecting phrasal patterns, idiomatic expressions, and structural templates with flexible word order. Generalizes beyond strict adjacency requirements while maintaining pattern specificity.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Pattern components separated by 1-3 tokens}\\
+\attweak{Strictly adjacent patterns, very long-range dependencies}\\
+\attreacts{Phrasal patterns, templates, flexible idioms}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced recognition of flexible patterns and templates. ~10-15\% degradation on tasks requiring non-contiguous pattern matching. Less critical than induction heads; other pattern mechanisms provide fallback.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"not only X but also" (skip-bigram pattern)}\\
+\exbehavior{Recognizes "not...but" pattern despite intervening tokens}\\
+\exeffect{Helps predict "also" after "but" even with intervening content}
+\end{examplebox}
+
+\headfooter{\statusobs}{induction (M), local-pattern (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Algorithmic Continuation Head}
+\label{head:algorithmic-continuation}
+
+\noindent\depthinfo{0.45--0.70} | \litnames{algorithmic head, continuation head, sequence head}
+
+\begin{functiondesc}
+Recognizes and continues algorithmic sequences such as counting (1, 2, 3...), days of week, months, or other systematic progressions. Distinct from general pattern matching by operating on sequences with clear algorithmic rules. Can detect arithmetic progressions, cyclic patterns, and other rule-governed sequences. Contributes to the model's ability to perform basic reasoning over structured sequences without explicit training on those specific patterns.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Sequential elements in algorithmic patterns (numbers, ordered lists)}\\
+\attweak{Random sequences, semantic patterns without algorithmic structure}\\
+\attreacts{Arithmetic progressions, cyclic orderings, systematic enumerations}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced performance on sequence continuation tasks (counting, ordering). ~15-30\% degradation on arithmetic sequences and structured enumerations. Some algorithmic reasoning may persist through other mechanisms.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Monday, Tuesday, Wednesday, ..."}\\
+\exbehavior{Recognizes day-of-week sequence, attends to progression pattern}\\
+\exeffect{Strongly predicts "Thursday" as next token}
+\end{examplebox}
+
+\headfooter{\statusobs}{induction (M), digit (M)}

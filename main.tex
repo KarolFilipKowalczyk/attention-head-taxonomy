@@ -77,9 +77,40 @@ A \emph{stack} is a coherent group of head types that together implement a highe
 Although stacks represent functional groupings, different functions tend to appear at different depths. Early layers handle delimiters, content detection, and input conditioning. Middle layers implement reasoning, induction, and entity linking. Late layers manage narrative coherence, routing, and topic steering. Final layers enforce policy, formatting, rewriting, and safety compliance. This two-dimensional structure—\emph{stack $\times$ depth}—forms the basis of our catalog.
 
 %=============================================================================
-% CATALOG (from external file)
+% CATALOG
 %=============================================================================
-\input{catalog}
+
+\section{Attention Head Catalog}
+\label{sec:catalog}
+
+This section presents a comprehensive catalog of attention head types, organized by functional stack. Each stack groups heads that contribute to a common high-level capability. Within each stack, heads are ordered by depth (Early → Middle → Late → Final).
+
+\paragraph{Entry Format.} Each head entry includes:
+\begin{itemize}
+    \item \textbf{Depth range:} Typical relative depth (0.0–1.0) and layer locations
+    \item \textbf{Literature names:} Alternative names found in prior work
+    \item \textbf{Function:} Core behavior and mechanism
+    \item \textbf{Attention pattern:} What the head attends to
+    \item \textbf{Expected ablation:} Predicted effects if the head is disabled
+    \item \textbf{Example scenario:} Concrete behavioral illustration
+    \item \textbf{Stack and relations:} Primary stack and related heads
+\end{itemize}
+
+% Individual stack files
+\input{stack_reasoning}
+\input{stack_memory}
+\input{stack_instruction}
+\input{stack_knowledge}
+\input{stack_safety}
+\input{stack_stylistic}
+\input{stack_routing}
+\input{stack_structural}
+\input{stack_formatting}
+\input{stack_math}
+\input{stack_code}
+\input{stack_pedagogy}
+\input{stack_identity}
+\input{stack_meta_reasoning}
 
 %=============================================================================
 \section{Discussion}
@@ -115,7 +146,7 @@ Despite these limitations, we believe this taxonomy provides a valuable organizi
 \label{sec:conclusion}
 
 \subsection{Summary of Contributions}
-This work introduces a unified naming framework for attention heads in modern transformer models. We provide a four-level depth model (Early/Middle/Late/Final), a stack-based functional taxonomy (14 stacks), canonical names for $\sim$80 attention head types, and a comprehensive cross-reference for historical terminology.
+This work introduces a unified naming framework for attention heads in modern transformer models. We provide a four-level depth model (Early/Middle/Late/Final), a stack-based functional taxonomy (14 stacks), canonical names for attention head types, and a comprehensive cross-reference for historical terminology.
 
 \subsection{Adoption Guidelines}
 We recommend that researchers use canonical names in papers and documentation, include alternative names in parentheses when first mentioned, specify depth ranges when reporting head discoveries, and indicate primary stack membership for context. For example: "We identified an induction head (also called pattern head) at relative depth 0.35 in the Reasoning \& Algorithmic stack."
@@ -141,114 +172,7 @@ We hope this naming convention facilitates communication, enables replication, a
 \clearpage
 \appendix
 
-\section{Alphabetical Cross-Reference Table}
-\label{app:crossref}
-
-This table maps informal names found in the literature to our canonical naming convention. Format: \texttt{Literature name $\rightarrow$ (PREFIX) Canonical name}.
-
-\begin{small}
-\begin{longtable}{ll}
-\toprule
-\textbf{Literature Name} & \textbf{Canonical Name} \\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Literature Name} & \textbf{Canonical Name} \\
-\midrule
-\endhead
-\midrule
-\multicolumn{2}{r}{\emph{Continued on next page}} \\
-\endfoot
-\bottomrule
-\endlastfoot
-%
-algorithmic head & (M) Algorithmic continuation head \\
-block head & (L) Block-structure head \\
-boundary head & (E) Boundary head \\
-carry head & (L) Carry head \\
-char-level head & (E) Local pattern head \\
-classification head & (E) Safety-classification head \\
-code-block head & (L) Structural-block head \\
-code-fence head & (L) Structural-block head \\
-code-formatting head & (L) Structural-block head \\
-code-structure head & (L) Block-structure head \\
-coercion head & (L) Copy-suppression head \\
-completion head & (F) Completion-stabilization head \\
-consistency head & (F) Format-consistency head \\
-continuation head & (M) Algorithmic continuation head \\
-copy head & (L) Name-mover head / (M) Duplicate-token head \\
-copy-suppression head & (L) Copy-suppression head \\
-coreference head & (M) Coreference head \\
-delimiter head & (E) Delimiter head \\
-detection head & (E) Sensitive-content head \\
-digit head & (M) Digit head \\
-duplicate token head & (M) Duplicate-token head \\
-entity head & (M) Entity head \\
-explanation head & (M) Explanation head \\
-fact head & (M) Fact head \\
-fence head & (L) Structural-block head \\
-final-layer head & (F) Format-consistency head \\
-function head & (L) Formula-structure head \\
-hallucination-suppression head & (L) S-inhibition head \\
-hazard head & (E) Hazard-topic head \\
-indentation head & (M) Indentation head \\
-inhibition head & (L) S-inhibition head \\
-instruction head & (E) Instruction head \\
-intent head & (M) Task-mode head \\
-JSON-format head & (L) Output-schema head \\
-key-value head & (L) Key–value pairing head \\
-list head & (L) List-structure head \\
-local-pattern head & (E) Local pattern head \\
-markdown head & (L) Structural-block head / (L) List-structure head \\
-meta-cot head & (F) Meta-CoT head \\
-mode head & (M) Mode-switch head \\
-mover head & (L) Name-mover head \\
-name mover head & (L) Name-mover head \\
-narrative head & (M) Narrative style head \\
-object head & (L) Key–value pairing head \\
-operator head & (M) Operator head \\
-output-format head & (L) Output-schema head \\
-output-schema head & (L) Output-schema head \\
-output-specification head & (F) Output-specification head \\
-paren-matching head & (L) Paren-matching head \\
-pattern head & (E) Local pattern head / (M) Induction head \\
-persona head & (L) Persona head \\
-polite head & (L) Politeness head \\
-previous-token head & (E) Previous-token head \\
-prompt head & (E) System-prompt head \\
-python head & (L) Structural-block head \\
-quoting head & (L) Structural-block head \\
-rag-routing head & (F) Implicit-RAG routing head \\
-reasoning head & (F) Reasoning-mode head \\
-redirect head & (F) Redirect head \\
-reference head & (E) Reference head \\
-refusal head & (F) Refusal head \\
-repetition head & (M) Duplicate-token head \\
-retrieval head & (M) Schema retriever head \\
-risk head & (E) Hazard-topic head \\
-schema head & (M) Schema retriever head \\
-scope head & (L) Scope head \\
-sectioning head & (L) Sectioning head \\
-self-description head & (L) Self-description head \\
-semantic head & (L) Focus head \\
-sensitive-content head & (E) Sensitive-content head \\
-skip-trigram head & (M) Skip-trigram head \\
-steering head & (L) Policy-enforcement head / (F) Reasoning-mode head \\
-style head & (M) Tone head / (M) Narrative style head \\
-suppression head & (L) Copy-suppression head \\
-system head & (E) System-prompt head \\
-task head & (M) Task-mode head \\
-token-type head & (M) Token-type head \\
-tone head & (M) Tone head \\
-tone-softening head & (F) Tone-softening head \\
-toxicity head & (E) Toxicity head \\
-tracking head & (M) State-tracking head \\
-translate head & (M) Entity head / (M) Fact head \\
-whitespace head & (E) Whitespace-structure head \\
-XML head & (L) Output-schema head \\
-YAML head & (L) Output-schema head \\
-\end{longtable}
-\end{small}
+\input{appendix}
 
 %=============================================================================
 % BIBLIOGRAPHY
