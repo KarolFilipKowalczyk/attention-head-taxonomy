@@ -1,0 +1,260 @@
+\documentclass[11pt,a4paper]{article}
+
+% Load preamble with packages and macros
+\input{preamble}
+
+% Document metadata
+\title{Attention Head Naming Convention \\ for Large Language Models (LLMs)}
+\author{Karol Kowalczyk}
+\date{November 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Large language models have reached remarkable levels of reasoning, safety alignment, and structural understanding. Yet their internal workings remain difficult to interpret. One of the most productive areas in transparency research is the study of \emph{attention heads}—small components inside transformer layers that develop specialized behaviors. Over time, informal naming conventions have emerged in the interpretability community: \emph{induction heads}, \emph{name mover heads}, \emph{refusal heads}, and many others. These names are intuitive but inconsistent, overlapping, or ambiguous.
+
+This work proposes a unified naming convention for attention heads. We introduce: (1) a four-level depth model (Early, Middle, Late, Final), (2) a stack-based functional grouping of attention behaviors, (3) canonical names for head types, and (4) an alphabetical cross-reference table translating historical terms to standardized ones. This naming convention is descriptive rather than prescriptive: it captures how heads tend to behave today, while remaining flexible for future architectures.
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+%=============================================================================
+% MAIN CONTENT
+%=============================================================================
+
+\section{Introduction}
+\label{sec:introduction}
+
+\subsection{Motivation}
+Large language models (LLMs) have achieved remarkable performance across diverse tasks, yet understanding their internal mechanisms remains a critical challenge. Attention heads—the basic computational units within transformer architectures—have emerged as key objects of study in mechanistic interpretability research.
+
+\subsection{The Problem of Inconsistent Naming}
+The interpretability community has identified numerous specialized attention head types: \emph{induction heads}, \emph{name mover heads}, \emph{refusal heads}, \emph{delimiter heads}, \emph{JSON heads}, and many others. However, these naming conventions suffer from several problems. They are \textbf{inconsistent}, with the same head type appearing under multiple names across papers. They are \textbf{ambiguous}, as a single name may refer to different behaviors in different contexts. They are \textbf{fragmented}, lacking any unified framework that connects related head types. Finally, they are \textbf{unscalable}, as naming schemes don't generalize across model architectures. This fragmentation makes replication difficult, hinders cross-paper comparison, and complicates the annotation of interpretability datasets.
+
+\subsection{Goals of This Work}
+We propose a unified naming convention that standardizes terminology across research groups, provides a functional taxonomy grounded in empirical observations, describes head behavior consistently across architectures, and creates a stable vocabulary that can evolve as models evolve.
+
+\subsection{Structure of This Document}
+We begin by reviewing prior work and motivation (\S\ref{sec:background}). We then introduce our depth model (\S\ref{sec:depth}) and stack-based organization (\S\ref{sec:stacks}). The core contribution is a comprehensive catalog of attention head types organized by functional stack (\S\ref{sec:catalog}). We conclude with discussion (\S\ref{sec:discussion}) and future directions (\S\ref{sec:conclusion}).
+
+%=============================================================================
+\section{Background}
+\label{sec:background}
+
+\subsection{Attention Heads and Functions}
+In transformer models \cite{vaswani2017attention}, attention heads perform focused computations over the token sequence. Individually simple, they nevertheless develop specialized behaviors such as pattern continuation and token induction, entity and dependency tracking, semantic filtering and hazard detection, routing and topic steering, enforcing structured output formats, and applying safety constraints \cite{elhage2021mathematical,olsson2022context}. These behaviors form \emph{circuits}—groups of heads working together—as well as larger \emph{stacks} of related functionality.
+
+\subsection{Why Naming Consistency Matters}
+Interpretability research suffers from fragmented terminology \cite{rai2024practical,zheng2025attention}. The same head type may appear under multiple names, while a single overloaded name may refer to unrelated behaviors across different papers. This makes replication, comparison, and annotation difficult. A consistent naming system improves clarity and precision in communication, strengthens cross-paper alignment and replication, helps index and organize interpretability datasets, and enables systematic mapping of circuits across models.
+
+\subsection{Prior Naming Practices}
+Previous work has named heads based on behavior (induction, copy-suppression), formatting (JSON head, list head), signal source (delimiter head), role in circuits (name mover), or safety behavior (refusal, toxicity). These labels are often accurate but vary widely. This work unifies them under a systematic framework.
+
+%=============================================================================
+\section{Depth Model: Early—Middle—Late—Final}
+\label{sec:depth}
+
+\subsection{Rationale for Four Depth Categories}
+Although transformer models may have 12, 48, or 96 layers, functional behavior clusters reliably into four zones \cite{elhage2021mathematical,wang2022interpretability}. \textbf{Early layers (E)} handle token-level surface processing, boundary detection, and basic filtering. \textbf{Middle layers (M)} implement reasoning primitives, induction, and dependency tracking. \textbf{Late layers (L)} perform semantic integration, routing, and persona shaping. \textbf{Final layers (F)} enforce policy, safety modulation, and structured output. This structure holds across GPT, LLaMA, Claude, and other model families \cite{brown2020language,touvron2023llama,achiam2023gpt}.
+
+\subsection{Cross-Model Depth Examples}
+Using \emph{relative depth} (0.0–1.0) makes the taxonomy scale-free. For a 96-layer model, Early corresponds to layers 0–15 (relative depth 0.00–0.15), Middle to layers 15–50 (relative depth 0.15–0.52), Late to layers 50–85 (relative depth 0.52–0.88), and Final to layers 85–96 (relative depth 0.88–1.00).
+
+\subsection{Relative Depth Scaling}
+We express depth as a fraction of total model depth to enable cross-architecture comparison. A head at relative depth 0.40 occupies similar functional space whether in a 12-layer or 96-layer model.
+
+%=============================================================================
+\section{Stacks: Functional Grouping of Attention Heads}
+\label{sec:stacks}
+
+\subsection{What is a Stack?}
+A \emph{stack} is a coherent group of head types that together implement a higher-level capability. Stacks reflect functional clustering observed in interpretability studies \cite{wang2022interpretability,olsson2022context}. Examples include the Reasoning \& Algorithmic Stack, Memory \& Dependency Stack, Safety Stack, and Output Formatting \& Rewrite Stack. Stacks are orthogonal to depth: a stack may span Early, Middle, Late, and Final layers.
+
+\subsection{Relationship Between Stacks and Depth}
+Although stacks represent functional groupings, different functions tend to appear at different depths. Early layers handle delimiters, content detection, and input conditioning. Middle layers implement reasoning, induction, and entity linking. Late layers manage narrative coherence, routing, and topic steering. Final layers enforce policy, formatting, rewriting, and safety compliance. This two-dimensional structure—\emph{stack $\times$ depth}—forms the basis of our catalog.
+
+%=============================================================================
+% CATALOG (from external file)
+%=============================================================================
+\input{catalog}
+
+%=============================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Cross-Stack Patterns}
+Across architectures, consistent patterns emerge \cite{rai2024practical,zheng2025attention}. Early heads operate on surface features and local patterns. Middle heads contain the computational "core" of the model. Late heads integrate high-level semantics and contextual information. Final heads handle policy, safety, and structural correctness. Stacks combine heads from multiple depths to form higher-level behaviors.
+
+\subsection{Depth Distribution Across Stacks}
+Some stacks are concentrated at specific depths. Structural \& Boundary and Safety (detection) stacks are Early-heavy. Reasoning \& Algorithmic and Memory \& Dependency stacks are Middle-heavy. Knowledge Retrieval and Stylistic \& Persona stacks are Late-heavy. Safety (enforcement) and Output Formatting stacks are Final-heavy. This distribution reflects the hierarchical processing flow in transformers.
+
+\subsection{Ambiguous or Multi-Role Heads}
+Some heads perform multiple distinct functions depending on context (different prompts trigger different behaviors), interaction with other circuit elements, or model architecture and training procedure \cite{voita2019analyzing}. For such cases, we name the head based on its \textbf{primary, reproducible function}, while noting secondary behaviors in the entry description.
+
+\subsection{Model-Specific Variations}
+While most head types appear consistently across architectures, some variations exist. GPT-style models may emphasize certain reasoning heads \cite{brown2020language}, LLaMA models show strong instruction-following head patterns \cite{touvron2023llama}, and safety-tuned models have more pronounced safety stack heads \cite{ouyang2022training,bai2022constitutional}. Our taxonomy accommodates these variations through the depth range and status indicators.
+
+\subsection{Limitations and Future Work}
+This naming convention has several limitations:
+
+\paragraph{Scope.} We focus on attention heads; MLPs, embeddings, and other components also contribute to model behavior.
+
+\paragraph{Empirical Grounding.} Many entries synthesize literature reports rather than presenting novel empirical findings. Future work should validate and refine these categorizations.
+
+\paragraph{Architecture Evolution.} New architectures (e.g., with different attention mechanisms) may require taxonomy extensions.
+
+\paragraph{Head Polysemanticity.} Some heads may serve multiple functions that our single-name system cannot fully capture.
+
+Despite these limitations, we believe this taxonomy provides a valuable organizing framework for the field.
+
+%=============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+\subsection{Summary of Contributions}
+This work introduces a unified naming framework for attention heads in modern transformer models. We provide a four-level depth model (Early/Middle/Late/Final), a stack-based functional taxonomy (14 stacks), canonical names for $\sim$80 attention head types, and a comprehensive cross-reference for historical terminology.
+
+\subsection{Adoption Guidelines}
+We recommend that researchers use canonical names in papers and documentation, include alternative names in parentheses when first mentioned, specify depth ranges when reporting head discoveries, and indicate primary stack membership for context. For example: "We identified an induction head (also called pattern head) at relative depth 0.35 in the Reasoning \& Algorithmic stack."
+
+\subsection{Future Directions}
+This taxonomy opens several research directions:
+
+\paragraph{Empirical Validation.} Systematic studies validating head types across diverse models \cite{rai2024practical,zheng2025attention}.
+
+\paragraph{Automated Detection.} Tools for automatically identifying and classifying heads in new models \cite{bills2023language}.
+
+\paragraph{Circuit Mapping.} Using standardized names to build comprehensive circuit databases \cite{wang2022interpretability}.
+
+\paragraph{Architecture Design.} Leveraging head taxonomy to design more interpretable models.
+
+\paragraph{Safety Applications.} Using head understanding to improve model alignment and safety \cite{zhou2025refusal,arditi2024refusal}.
+
+We hope this naming convention facilitates communication, enables replication, and provides structure to an expanding field.
+
+%=============================================================================
+% APPENDICES
+%=============================================================================
+\clearpage
+\appendix
+
+\section{Alphabetical Cross-Reference Table}
+\label{app:crossref}
+
+This table maps informal names found in the literature to our canonical naming convention. Format: \texttt{Literature name $\rightarrow$ (PREFIX) Canonical name}.
+
+\begin{small}
+\begin{longtable}{ll}
+\toprule
+\textbf{Literature Name} & \textbf{Canonical Name} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Literature Name} & \textbf{Canonical Name} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\emph{Continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+%
+algorithmic head & (M) Algorithmic continuation head \\
+block head & (L) Block-structure head \\
+boundary head & (E) Boundary head \\
+carry head & (L) Carry head \\
+char-level head & (E) Local pattern head \\
+classification head & (E) Safety-classification head \\
+code-block head & (L) Structural-block head \\
+code-fence head & (L) Structural-block head \\
+code-formatting head & (L) Structural-block head \\
+code-structure head & (L) Block-structure head \\
+coercion head & (L) Copy-suppression head \\
+completion head & (F) Completion-stabilization head \\
+consistency head & (F) Format-consistency head \\
+continuation head & (M) Algorithmic continuation head \\
+copy head & (L) Name-mover head / (M) Duplicate-token head \\
+copy-suppression head & (L) Copy-suppression head \\
+coreference head & (M) Coreference head \\
+delimiter head & (E) Delimiter head \\
+detection head & (E) Sensitive-content head \\
+digit head & (M) Digit head \\
+duplicate token head & (M) Duplicate-token head \\
+entity head & (M) Entity head \\
+explanation head & (M) Explanation head \\
+fact head & (M) Fact head \\
+fence head & (L) Structural-block head \\
+final-layer head & (F) Format-consistency head \\
+function head & (L) Formula-structure head \\
+hallucination-suppression head & (L) S-inhibition head \\
+hazard head & (E) Hazard-topic head \\
+indentation head & (M) Indentation head \\
+inhibition head & (L) S-inhibition head \\
+instruction head & (E) Instruction head \\
+intent head & (M) Task-mode head \\
+JSON-format head & (L) Output-schema head \\
+key-value head & (L) Key–value pairing head \\
+list head & (L) List-structure head \\
+local-pattern head & (E) Local pattern head \\
+markdown head & (L) Structural-block head / (L) List-structure head \\
+meta-cot head & (F) Meta-CoT head \\
+mode head & (M) Mode-switch head \\
+mover head & (L) Name-mover head \\
+name mover head & (L) Name-mover head \\
+narrative head & (M) Narrative style head \\
+object head & (L) Key–value pairing head \\
+operator head & (M) Operator head \\
+output-format head & (L) Output-schema head \\
+output-schema head & (L) Output-schema head \\
+output-specification head & (F) Output-specification head \\
+paren-matching head & (L) Paren-matching head \\
+pattern head & (E) Local pattern head / (M) Induction head \\
+persona head & (L) Persona head \\
+polite head & (L) Politeness head \\
+previous-token head & (E) Previous-token head \\
+prompt head & (E) System-prompt head \\
+python head & (L) Structural-block head \\
+quoting head & (L) Structural-block head \\
+rag-routing head & (F) Implicit-RAG routing head \\
+reasoning head & (F) Reasoning-mode head \\
+redirect head & (F) Redirect head \\
+reference head & (E) Reference head \\
+refusal head & (F) Refusal head \\
+repetition head & (M) Duplicate-token head \\
+retrieval head & (M) Schema retriever head \\
+risk head & (E) Hazard-topic head \\
+schema head & (M) Schema retriever head \\
+scope head & (L) Scope head \\
+sectioning head & (L) Sectioning head \\
+self-description head & (L) Self-description head \\
+semantic head & (L) Focus head \\
+sensitive-content head & (E) Sensitive-content head \\
+skip-trigram head & (M) Skip-trigram head \\
+steering head & (L) Policy-enforcement head / (F) Reasoning-mode head \\
+style head & (M) Tone head / (M) Narrative style head \\
+suppression head & (L) Copy-suppression head \\
+system head & (E) System-prompt head \\
+task head & (M) Task-mode head \\
+token-type head & (M) Token-type head \\
+tone head & (M) Tone head \\
+tone-softening head & (F) Tone-softening head \\
+toxicity head & (E) Toxicity head \\
+tracking head & (M) State-tracking head \\
+translate head & (M) Entity head / (M) Fact head \\
+whitespace head & (E) Whitespace-structure head \\
+XML head & (L) Output-schema head \\
+YAML head & (L) Output-schema head \\
+\end{longtable}
+\end{small}
+
+%=============================================================================
+% BIBLIOGRAPHY
+%=============================================================================
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

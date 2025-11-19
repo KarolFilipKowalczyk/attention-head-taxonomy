@@ -1,0 +1,1137 @@
+%=============================================================================
+% CATALOG.TEX - Full Depth-Sorted Catalog of Attention Heads
+%=============================================================================
+
+\section{Attention Head Catalog}
+\label{sec:catalog}
+
+This section presents a comprehensive catalog of attention head types, organized by functional stack. Each stack groups heads that contribute to a common high-level capability. Within each stack, heads are ordered by depth (Early → Middle → Late → Final).
+
+\paragraph{Entry Format.} Each head entry includes:
+\begin{itemize}
+    \item \textbf{Depth range:} Typical relative depth (0.0–1.0) and layer locations
+    \item \textbf{Literature names:} Alternative names found in prior work
+    \item \textbf{Function:} Core behavior and mechanism
+    \item \textbf{Attention pattern:} What the head attends to
+    \item \textbf{Expected ablation:} Predicted effects if the head is disabled
+    \item \textbf{Example scenario:} Concrete behavioral illustration
+    \item \textbf{Stack and relations:} Primary stack and related heads
+\end{itemize}
+
+%=============================================================================
+\subsection{Reasoning \& Algorithmic Stack}
+\label{sec:reasoning-stack}
+
+\textbf{Stack overview:} This stack encompasses heads that perform pattern matching, sequence continuation, and algorithmic reasoning. These heads enable in-context learning, pattern completion, and systematic token prediction based on structural regularities.
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Previous-Token Head}
+\label{head:previous-token}
+
+\noindent\depthinfo{0.05--0.18} | \litnames{previous-token head, shift head, offset head}
+
+\begin{functiondesc}
+Copies information from each token to the position of the next token, creating a shifted representation where token $t$ contains information about token $t-1$. This is a foundational component of induction circuits, enabling later heads to access "what came before" without directly attending backwards. Implements a simple but crucial transformation that allows pattern matching across the sequence. The head typically shows a strong diagonal attention pattern (attending from position $i$ to position $i-1$).
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Immediately preceding token (diagonal attention pattern)}\\
+\attweak{Distant tokens, same-position tokens}\\
+\attreacts{Sequential structure, token boundaries}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Breaks induction circuits entirely, causing 30-50\% degradation in pattern completion tasks. Induction heads become unable to access "what came after previous occurrences" since that information is no longer shifted forward. Critical for in-context learning.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The cat sat. The cat..."}\\
+\exbehavior{Copies "The" to position after "The", "cat" to position after "cat", etc.}\\
+\exeffect{Later induction heads can match "cat" and access what followed it ("sat")}
+\end{examplebox}
+
+\headfooter{\statuswell}{induction head (M), duplicate-token (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Local Pattern Head}
+\label{head:local-pattern}
+
+\noindent\depthinfo{0.08--0.20} | \litnames{local pattern head, char-level head, n-gram head}
+
+\begin{functiondesc}
+Detects and processes local character-level or subword patterns, particularly useful for handling spelling, capitalization, punctuation patterns, and morphological structure. Operates at a finer granularity than most heads, attending to patterns within and between adjacent tokens. Important for tasks like spell checking, case handling, and recognizing common subword patterns. May also detect repeated character sequences or structural patterns like "ing", "tion", or punctuation clusters.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Adjacent tokens, subword units, character-level patterns}\\
+\attweak{Long-range dependencies, semantic content}\\
+\attreacts{Spelling patterns, capitalization, punctuation, morphology}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degradation in handling of misspellings, case variations, and morphological patterns. ~10-20\% increase in errors on tasks requiring character-level awareness. Partial fallback through tokenization and other pattern heads.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The organizATION's" (unusual capitalization)}\\
+\exbehavior{Detects unusual case pattern in "ATION", attends to surrounding context}\\
+\exeffect{Helps model handle non-standard capitalization correctly}
+\end{examplebox}
+
+\headfooter{\statusobs}{induction head (M), duplicate-token (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Induction Head}
+\label{head:induction}
+
+\noindent\depthinfo{0.30--0.65} | \litnames{induction head, pattern head, copy head, ICL head}
+
+\begin{functiondesc}
+Detects repeated subsequences of the form [A][B]...[A] and predicts that [B] should follow the second [A]. Operates by attending to tokens that appeared after previous instances of the current token. Works in conjunction with previous-token heads which copy information about what preceded each token. This mechanism is fundamental to in-context learning, enabling pattern completion, name recall, and few-shot learning without parameter updates. One of the most well-documented and important head types in transformer interpretability.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Tokens following previous occurrences of current token}\\
+\attweak{Immediate neighbors, first occurrence, unrelated tokens}\\
+\attreacts{Token repetition, [A][B]...[A] patterns, contextual recurrence}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Significant degradation (10-30\%) in in-context learning tasks, reduced pattern completion and few-shot learning. Model may partially compensate through other heads but with substantial accuracy loss. Critical for ICL capability.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"When Mary and John went to the store, Mary bought..."}\\
+\exbehavior{Second "Mary" attends to tokens following first "Mary" (especially "and")}\\
+\exeffect{Increased probability of contextually appropriate continuation}
+\end{examplebox}
+
+\headfooter{\statuswell}{previous-token (E), duplicate-token (M), name-mover (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Duplicate-Token Head}
+\label{head:duplicate-token}
+
+\noindent\depthinfo{0.35--0.60} | \litnames{duplicate-token head, repetition head, copy head}
+
+\begin{functiondesc}
+Detects when the current token has appeared previously in the sequence, marking repeated tokens for downstream processing. Unlike induction heads which predict what comes next, duplicate-token heads simply signal "this token appeared before". This information is used by various circuits including IOI (indirect object identification), name-mover heads, and copy-suppression mechanisms. Implements a simpler form of pattern matching than full induction, serving as a building block for more complex behaviors.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Previous identical tokens (exact matches)}\\
+\attweak{Similar but non-identical tokens, first occurrence}\\
+\attreacts{Exact token repetition, name recurrence, repeated phrases}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Impaired duplicate detection, affecting name-mover circuits and copy-suppression. ~15-25\% degradation in tasks requiring duplicate awareness. Partial overlap with induction heads provides some redundancy.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Alice gave the book to Bob. Then Alice..."}\\
+\exbehavior{Second "Alice" detects it appeared earlier, writes duplicate signal}\\
+\exeffect{Downstream heads (name-movers, S-inhibition) use this signal}
+\end{examplebox}
+
+\headfooter{\statuswell}{induction (M), name-mover (L), S-inhibition (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Skip-Trigram Head}
+\label{head:skip-trigram}
+
+\noindent\depthinfo{0.40--0.65} | \litnames{skip-trigram head, skip-gram head}
+
+\begin{functiondesc}
+Implements skip-gram pattern matching, attending to non-contiguous patterns like [A]...[B]...[C] where the dots represent intervening tokens. More flexible than strict n-gram matching, allowing for pattern recognition across variable distances. Useful for detecting phrasal patterns, idiomatic expressions, and structural templates with flexible word order. Generalizes beyond strict adjacency requirements while maintaining pattern specificity.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Pattern components separated by 1-3 tokens}\\
+\attweak{Strictly adjacent patterns, very long-range dependencies}\\
+\attreacts{Phrasal patterns, templates, flexible idioms}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced recognition of flexible patterns and templates. ~10-15\% degradation on tasks requiring non-contiguous pattern matching. Less critical than induction heads; other pattern mechanisms provide fallback.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"not only X but also" (skip-bigram pattern)}\\
+\exbehavior{Recognizes "not...but" pattern despite intervening tokens}\\
+\exeffect{Helps predict "also" after "but" even with intervening content}
+\end{examplebox}
+
+\headfooter{\statusobs}{induction (M), local-pattern (E)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Algorithmic Continuation Head}
+\label{head:algorithmic-continuation}
+
+\noindent\depthinfo{0.45--0.70} | \litnames{algorithmic head, continuation head, sequence head}
+
+\begin{functiondesc}
+Recognizes and continues algorithmic sequences such as counting (1, 2, 3...), days of week, months, or other systematic progressions. Distinct from general pattern matching by operating on sequences with clear algorithmic rules. Can detect arithmetic progressions, cyclic patterns, and other rule-governed sequences. Contributes to the model's ability to perform basic reasoning over structured sequences without explicit training on those specific patterns.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Sequential elements in algorithmic patterns (numbers, ordered lists)}\\
+\attweak{Random sequences, semantic patterns without algorithmic structure}\\
+\attreacts{Arithmetic progressions, cyclic orderings, systematic enumerations}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced performance on sequence continuation tasks (counting, ordering). ~15-30\% degradation on arithmetic sequences and structured enumerations. Some algorithmic reasoning may persist through other mechanisms.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Monday, Tuesday, Wednesday, ..."}\\
+\exbehavior{Recognizes day-of-week sequence, attends to progression pattern}\\
+\exeffect{Strongly predicts "Thursday" as next token}
+\end{examplebox}
+
+\headfooter{\statusobs}{induction (M), digit (M)}
+
+%-----------------------------------------------------------------------------
+
+%=============================================================================
+\subsection{Memory \& Dependency Stack}
+\label{sec:memory-stack}
+
+\textbf{Stack overview:} These heads track references, resolve coreferences, and maintain dependency relationships across the input sequence. They enable the model to understand which entities are being discussed and how they relate to each other.
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Pronoun Head}
+\label{head:pronoun}
+
+\noindent\depthinfo{0.08--0.22} | \litnames{pronoun head, anaphora head}
+
+\begin{functiondesc}
+Performs early-stage pronoun detection and basic anaphora resolution. Identifies pronouns (he, she, it, they) and attends to potential referents, particularly nearby nouns that match in number and gender. Provides initial binding signals that are refined by later coreference heads. Operates primarily on syntactic and positional cues rather than deep semantic understanding. Forms the foundation for more sophisticated reference resolution in deeper layers.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Pronouns to recent nouns matching in number/gender}\\
+\attweak{Distant nouns, semantically incompatible referents}\\
+\attreacts{Pronoun presence, noun-pronoun proximity, agreement features}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degraded pronoun resolution, particularly for simple local cases. ~15-25\% increase in pronoun resolution errors. Later coreference heads can partially compensate but with reduced accuracy.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Alice met Bob. She smiled."}\\
+\exbehavior{"She" attends to "Alice" based on gender and recency}\\
+\exeffect{Establishes initial binding that later heads refine}
+\end{examplebox}
+
+\headfooter{\statuswell}{reference (E), coreference (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Reference Head}
+\label{head:reference}
+
+\noindent\depthinfo{0.10--0.25} | \litnames{reference head, mention head}
+
+\begin{functiondesc}
+Detects and tracks explicit references including definite descriptions ("the president"), demonstratives ("this approach"), and possessives ("her book"). Broader than pronoun heads, handling various reference forms. Attends to entities that make the reference meaningful, establishing initial reference chains. Works alongside pronoun heads to build a comprehensive early-stage reference tracking system. Particularly important for maintaining coherence across longer texts.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Definite descriptions to their referents, demonstratives to antecedents}\\
+\attweak{First mentions, indefinite references}\\
+\attreacts{Definite articles, demonstratives, possessives, referring expressions}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Loss of reference tracking for non-pronominal references. ~20-30\% degradation in handling definite descriptions and complex referring expressions. Particularly impacts longer-context coherence.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"A scientist made a discovery. The researcher published it."}\\
+\exbehavior{"The researcher" attends to "scientist" (coreferential)}\\
+\exeffect{Maintains entity continuity across sentences}
+\end{examplebox}
+
+\headfooter{\statuswell}{pronoun (E), coreference (M), entity (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Coreference Head}
+\label{head:coreference}
+
+\noindent\depthinfo{0.35--0.60} | \litnames{coreference head, coref head}
+
+\begin{functiondesc}
+Performs sophisticated coreference resolution, determining when different expressions refer to the same entity. Integrates signals from early pronoun and reference heads with semantic understanding to resolve ambiguous cases. Can handle complex phenomena like split antecedents, bridging references, and discourse-level coreference. Critical for maintaining entity tracking across long contexts and understanding narrative structure. Represents one of the core NLP capabilities in transformers.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Coreferential mentions regardless of form}\\
+\attweak{Different entities, first mentions without antecedents}\\
+\attreacts{Semantic compatibility, discourse coherence, entity properties}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Significant degradation (30-50\%) in coreference resolution tasks. Model loses ability to track entities across complex reference chains. Particularly impacts question answering and summarization.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The CEO announced changes. Later, the executive clarified. She emphasized..."}\\
+\exbehavior{Links all three mentions (CEO, executive, She) to same entity}\\
+\exeffect{Maintains consistent entity representation throughout discourse}
+\end{examplebox}
+
+\headfooter{\statuswell}{pronoun (E), reference (E), entity (M), bridging (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Long-Range Dependency Head}
+\label{head:long-range-dependency}
+
+\noindent\depthinfo{0.40--0.65} | \litnames{long-range head, dependency head}
+
+\begin{functiondesc}
+Tracks long-range syntactic and semantic dependencies across distant parts of the sequence. Unlike local attention patterns, this head maintains connections between elements separated by many tokens (20-100+). Essential for understanding complex sentences, nested structures, and discourse relations. Implements the key advantage of transformers over RNNs: direct long-distance connections without degradation. Can maintain multiple simultaneous long-range connections.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Syntactically or semantically related distant tokens}\\
+\attweak{Immediately adjacent tokens, unrelated distant content}\\
+\attreacts{Nested structures, long-distance agreement, discourse relations}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Degradation in handling complex sentences and long-range relationships. ~25-40\% performance loss on tasks requiring long-distance reasoning. Particularly impacts nested structures and long documents.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"The book [that Alice mentioned [that Bob recommended]] was excellent."}\\
+\exbehavior{"was" attends back to "book" across nested relative clauses}\\
+\exeffect{Maintains correct subject-verb agreement despite intervening material}
+\end{examplebox}
+
+\headfooter{\statusobs}{coreference (M), state-tracking (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Bridging Head}
+\label{head:bridging}
+
+\noindent\depthinfo{0.45--0.68} | \litnames{bridging head, associative reference head}
+
+\begin{functiondesc}
+Resolves bridging references where the connection between mentions requires inferencing based on world knowledge. For example, connecting "the car" to "the steering wheel" (part-whole), or "the building" to "the architect" (role relation). More sophisticated than direct coreference, requiring semantic knowledge about typical relationships. Essential for understanding implicit connections in discourse. Bridges gaps that aren't explicit in the text.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Associatively related entities (part-whole, role, causation)}\\
+\attweak{Unrelated entities, explicit coreference}\\
+\attreacts{Implicit relationships, world knowledge, typical associations}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Loss of implicit reference resolution. ~15-30\% degradation on tasks requiring inference-based connections. Model becomes more literal, missing implicit relationships. Discourse coherence suffers.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"We entered the house. The door was painted blue."}\\
+\exbehavior{"The door" attends to "house" (part-whole bridging)}\\
+\exeffect{Understands "the door" refers to the house's door, not a random door}
+\end{examplebox}
+
+\headfooter{\statusobs}{coreference (M), entity (M), fact (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) State-Tracking Head}
+\label{head:state-tracking}
+
+\noindent\depthinfo{0.48--0.70} | \litnames{state-tracking head, tracking head, state head}
+
+\begin{functiondesc}
+Maintains and updates representations of changing states across the sequence. Tracks how entity properties evolve (e.g., location changes, status updates, accumulating information). Essential for understanding narratives where situations change over time. Can maintain multiple simultaneous state representations for different entities. Integrates new information with existing state representations to track dynamic situations.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{State-changing events, current state mentions, entity properties}\\
+\attweak{Static descriptions, unchanging background information}\\
+\attreacts{Verbs of change, state transitions, property modifications}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Difficulty tracking state changes across sequences. ~20-35\% degradation on tasks requiring temporal reasoning or state tracking. Narratives become harder to follow when states evolve.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Alice was in NYC. She flew to Paris. She then visited..."}\\
+\exbehavior{Updates Alice's location state: NYC → Paris}\\
+\exeffect{Correctly contextualizes "visited" as occurring in Paris}
+\end{examplebox}
+
+\headfooter{\statusobs}{coreference (M), long-range-dependency (M)}
+
+%-----------------------------------------------------------------------------
+
+%=============================================================================
+\subsection{Instruction \& Intent Stack}
+\label{sec:instruction-stack}
+
+\textbf{Stack overview:} This stack processes user instructions, system prompts, and task specifications. These heads determine what the model is being asked to do and switch between different operational modes.
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Instruction Head}
+\label{head:instruction}
+
+\noindent\depthinfo{0.05--0.20} | \litnames{instruction head, command head, directive head}
+
+\begin{functiondesc}
+Identifies and processes user instructions and commands in the input. Distinguishes instructional content from descriptive or conversational content. Attends to imperative verbs, question structures, and directive phrases. Writes instruction-detection signals into the residual stream that influence the entire generation process. Particularly important for instruction-tuned models where following user commands is a primary capability. Operates early to set the overall response strategy.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Imperative verbs, question words, directive phrases, command structures}\\
+\attweak{Descriptive content, narrative text, background information}\\
+\attreacts{Question marks, imperative mood, explicit requests, task markers}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced instruction-following capability. ~20-40\% degradation in responding appropriately to commands. Model may generate relevant content but fail to follow specific directives or answer questions directly.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Here's some context. Now, please summarize the key points."}\\
+\exbehavior{Strongly attends to "please summarize", identifies imperative instruction}\\
+\exeffect{Response shaped toward summary format rather than continuation}
+\end{examplebox}
+
+\headfooter{\statuswell}{system-prompt (E), task-mode (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) System-Prompt Head}
+\label{head:system-prompt}
+
+\noindent\depthinfo{0.08--0.22} | \litnames{system-prompt head, system head, prompt head}
+
+\begin{functiondesc}
+Specifically processes system prompts that define the model's role, constraints, and operational parameters. Distinct from user instruction heads by focusing on meta-level directives about how to behave rather than what task to perform. Attends to persona definitions ("You are a helpful assistant"), behavioral constraints ("Be concise"), and system-level instructions. Particularly important in chat models where system prompts establish the interaction framework.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{System-level directives, persona definitions, behavioral constraints}\\
+\attweak{User content, task-specific instructions}\\
+\attreacts{Role definitions, constraint specifications, system markers}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Reduced adherence to system-level instructions and persona. ~25-45\% degradation in maintaining consistent role behavior. Model may ignore constraints like "be concise" or persona like "respond as a teacher".
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"System: You are a concise technical writer. User: Explain recursion."}\\
+\exbehavior{Attends to "concise technical writer", writes persona signal}\\
+\exeffect{Response adopts technical, brief style rather than verbose explanation}
+\end{examplebox}
+
+\headfooter{\statuswell}{instruction (E), task-mode (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Task-Mode Head}
+\label{head:task-mode}
+
+\noindent\depthinfo{0.30--0.55} | \litnames{task head, mode head, intent head}
+
+\begin{functiondesc}
+Determines the overall task type or mode required by the input (e.g., question answering, summarization, translation, creative writing, coding). Integrates instruction signals from early layers with content analysis to classify the intended task. Writes task-mode embeddings that influence downstream processing, routing, and output formatting. Acts as a task classifier that shapes the model's approach to generation. More sophisticated than simple instruction detection, understanding task semantics.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Task indicators, instruction semantics, content type markers}\\
+\attweak{Generic content, ambiguous instructions}\\
+\attreacts{Task-specific keywords, question types, format requests, domain markers}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Task confusion, inappropriate response formats. ~30-50\% degradation in selecting correct task approach. Model may summarize when asked to analyze, or explain when asked to code.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Compare and contrast democracy and autocracy."}\\
+\exbehavior{Identifies "compare and contrast" task mode, not simple definition}\\
+\exeffect{Response structured as comparison rather than separate descriptions}
+\end{examplebox}
+
+\headfooter{\statuswell}{instruction (E), mode-switch (M), output-specification (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Mode-Switch Head}
+\label{head:mode-switch}
+
+\noindent\depthinfo{0.40--0.60} | \litnames{mode head, switch head, transition head}
+
+\begin{functiondesc}
+Detects and handles switches between different operational modes within a single interaction. For example, transitioning from conversational mode to code generation, or from explanation to example. Responds to explicit mode-switch indicators ("Now let's...") and implicit shifts in content type. Allows models to handle multi-faceted requests that require different processing strategies for different parts. Maintains coherence across mode boundaries.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Transition phrases, mode-shift markers, content type changes}\\
+\attweak{Uniform single-mode content}\\
+\attreacts{"Now", "For example", "In other words", format shifts, topic pivots}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Difficulty handling multi-mode requests. ~15-30\% degradation on complex instructions requiring mode switches. Model may stick to single mode or switch inappropriately.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Explain recursion. Now write Python code demonstrating it."}\\
+\exbehavior{Detects mode switch from explanation to code generation at "Now"}\\
+\exeffect{Response transitions smoothly from prose explanation to code block}
+\end{examplebox}
+
+\headfooter{\statusobs}{task-mode (M), output-specification (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Output-Specification Head}
+\label{head:output-specification}
+
+\noindent\depthinfo{0.85--0.98} | \litnames{output-specification head, format-directive head}
+
+\begin{functiondesc}
+Enforces specific output format requirements specified in the instruction (e.g., "respond in JSON", "use bullet points", "maximum 100 words"). Operates in final layers to ensure generated content conforms to explicit format directives. Works with output-formatting heads but focuses specifically on user-specified constraints rather than general format quality. Acts as the final enforcement of explicit user requirements about output structure.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Format specifications, length constraints, structure requirements}\\
+\attweak{Content without format requirements}\\
+\attreacts{"in JSON format", "bullet points", "no more than", structural directives}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Failure to follow explicit format requirements. ~40-60\% increase in format violations. Model may generate good content but in wrong format (prose instead of bullets, etc.).
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"List three benefits of exercise in bullet points."}\\
+\exbehavior{Attends to "bullet points" specification, enforces list format}\\
+\exeffect{Output uses bullet point structure rather than prose paragraphs}
+\end{examplebox}
+
+\headfooter{\statuswell}{task-mode (M), output-schema (L), format-consistency (F)}
+
+%-----------------------------------------------------------------------------
+
+%=============================================================================
+\subsection{Knowledge Retrieval Stack}
+\label{sec:knowledge-stack}
+
+\textbf{Stack overview:} These heads retrieve factual information, entity properties, and structured knowledge stored in model parameters. They move relevant information to output positions and suppress irrelevant or conflicting content.
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Entity Head}
+\label{head:entity}
+
+\noindent\depthinfo{0.35--0.58} | \litnames{entity head, name head, proper-noun head}
+
+\begin{functiondesc}
+Identifies and processes named entities (people, places, organizations) and retrieves associated information from model parameters. Attends to entity mentions and accesses stored factual knowledge about those entities. Forms the foundation for factual question answering and knowledge-intensive tasks. Can distinguish between different entities with similar names and maintain entity-specific information. Critical for grounding responses in factual knowledge rather than pure pattern matching.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Named entities, proper nouns, entity mentions}\\
+\attweak{Common nouns, generic references}\\
+\attreacts{Capitalization patterns, entity context, factual queries}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Significant degradation (30-50\%) in factual accuracy about entities. Model loses access to stored entity knowledge. May continue generating fluent text but with factual errors. Particularly impacts who/what/where questions.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"What is the capital of France?"}\\
+\exbehavior{Attends to "France", retrieves associated knowledge including "capital: Paris"}\\
+\exeffect{Outputs "Paris" with high confidence based on stored facts}
+\end{examplebox}
+
+\headfooter{\statuswell}{fact (M), name-mover (L), schema-retriever (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Fact Head}
+\label{head:fact}
+
+\noindent\depthinfo{0.38--0.62} | \litnames{fact head, knowledge head, factual-retrieval head}
+
+\begin{functiondesc}
+Retrieves factual relationships and propositions stored in model parameters. Broader than entity heads, handling general factual knowledge including relations, properties, and statements. Implements the model's ability to answer factual questions by accessing learned knowledge. Can retrieve multi-hop facts and combine information from multiple stored facts. Central to the model's knowledge-intensive capabilities. Works with entity heads to build comprehensive factual responses.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Factual queries, relation markers, knowledge-seeking patterns}\\
+\attweak{Opinion questions, hypotheticals, creative content}\\
+\attreacts{Question structures, fact-seeking context, verifiable claims}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Major loss of factual knowledge retrieval (40-70\%). Model may maintain linguistic fluency but lose factual grounding. Particularly severe for knowledge-intensive tasks like QA, fact-checking, and technical explanations.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Who invented the telephone?"}\\
+\exbehavior{Retrieves stored fact: invented(telephone) → Bell}\\
+\exeffect{Outputs "Alexander Graham Bell" based on parametric knowledge}
+\end{examplebox}
+
+\headfooter{\statuswell}{entity (M), schema-retriever (M), name-mover (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Name-Linking Head}
+\label{head:name-linking}
+
+\noindent\depthinfo{0.42--0.65} | \litnames{name-linking head, entity-linking head}
+
+\begin{functiondesc}
+Links mentions of entities across different forms (full names, partial names, abbreviations, nicknames). For example, connecting "Apple Inc.", "Apple", and "AAPL". More sophisticated than simple duplicate detection, understanding that different strings can refer to the same entity. Essential for maintaining entity coherence when references vary. Works with entity and coreference heads to build unified entity representations across diverse mentions.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Different forms of the same entity name}\\
+\attweak{Homonyms (different entities with similar names)}\\
+\attreacts{Name variations, abbreviations, partial names, context-based disambiguation}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Difficulty linking entity mentions across different forms. ~20-35\% degradation in entity tracking when names vary. Model may treat "Microsoft" and "MSFT" as unrelated despite context indicating same entity.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Microsoft Corporation announced... Later, MSFT stock rose..."}\\
+\exbehavior{Links "MSFT" to "Microsoft Corporation" despite different forms}\\
+\exeffect{Maintains unified entity representation across name variations}
+\end{examplebox}
+
+\headfooter{\statusobs}{entity (M), coreference (M), name-mover (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(M) Schema Retriever Head}
+\label{head:schema-retriever}
+
+\noindent\depthinfo{0.45--0.68} | \litnames{schema head, retrieval head, template head}
+
+\begin{functiondesc}
+Retrieves structured knowledge schemas and templates from model parameters. For example, accessing the typical structure of a restaurant visit (enter, order, eat, pay, leave) or the standard format of a scientific paper. Goes beyond individual facts to retrieve organized knowledge structures. Enables the model to generate structured responses following learned patterns. Important for tasks requiring domain-specific knowledge organization. Implements a form of implicit knowledge base querying.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Schema-triggering contexts, domain-specific patterns, structural cues}\\
+\attweak{Novel situations, schema-irrelevant content}\\
+\attreacts{Domain markers, structural queries, template-matching contexts}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Loss of structured knowledge organization. ~25-40\% degradation in tasks requiring schema-based reasoning. Model may provide facts but fail to organize them coherently according to learned structures.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Describe the scientific method."}\\
+\exbehavior{Retrieves scientific-method schema: observe→hypothesis→test→conclude}\\
+\exeffect{Response organized according to standard method structure}
+\end{examplebox}
+
+\headfooter{\statusobs}{fact (M), entity (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Name-Mover Head}
+\label{head:name-mover}
+
+\noindent\depthinfo{0.60--0.80} | \litnames{name mover head, mover head, copy head}
+
+\begin{functiondesc}
+Copies entity names and important content to output positions where they are needed. Central component of the IOI (indirect object identification) circuit. Attends to relevant entities earlier in context and moves them forward when they need to be generated. Particularly important for completing sentences that require recalling previously mentioned entities. Works with S-inhibition heads to select the correct entity when multiple candidates exist. One of the most studied head types in interpretability research.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Named entities that need to be output, contextually relevant names}\\
+\attweak{Irrelevant entities, suppressed alternatives}\\
+\attreacts{Entity salience, contextual appropriateness, output position requirements}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Severe degradation (40-70\%) in entity recall and completion. Model loses ability to move specific names to output. Particularly impacts question answering and cloze tasks requiring entity recall.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"When Alice and Bob went to the store, Alice gave the book to..."}\\
+\exbehavior{Moves "Bob" to output position as the indirect object}\\
+\exeffect{Completes sentence with "Bob" (not "Alice")}
+\end{examplebox}
+
+\headfooter{\statuswell}{entity (M), fact (M), S-inhibition (L), copy-suppression (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) S-Inhibition Head}
+\label{head:s-inhibition}
+
+\noindent\depthinfo{0.62--0.82} | \litnames{S-inhibition head, inhibition head, suppression head}
+
+\begin{functiondesc}
+Suppresses incorrect or contextually inappropriate entities from being generated. Named "S-inhibition" from IOI research where it inhibits the subject (S) when the indirect object (IO) should be output. Works antagonistically with name-mover heads, preventing the wrong entity from appearing. Essential for disambiguation when multiple entities are candidates. Implements a form of negative selection, ruling out incorrect options. Part of the "inhibition" mechanism that prevents hallucination and maintains accuracy.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Entities that should NOT be output (contextually inappropriate)}\\
+\attweak{Correct entities, absent entities}\\
+\attreacts{Competing candidates, context requiring disambiguation}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Increased entity confusion and incorrect selections. ~35-60\% increase in wrong entity predictions. Model may output recently mentioned but contextually wrong entities. Critical for accuracy in ambiguous contexts.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Alice gave the book to Bob. Then Alice..."}\\
+\exbehavior{Inhibits "Bob" from being output after "Alice" (subject position)}\\
+\exeffect{Prevents incorrect continuation like "Alice Bob..." }
+\end{examplebox}
+
+\headfooter{\statuswell}{name-mover (L), copy-suppression (L), duplicate-token (M)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Copy-Suppression Head}
+\label{head:copy-suppression}
+
+\noindent\depthinfo{0.65--0.85} | \litnames{copy-suppression head, suppression head, anti-copy head}
+
+\begin{functiondesc}
+Prevents inappropriate copying or repetition of content. Works to avoid degenerate behaviors like endless repetition loops or copy-pasting irrelevant context. Particularly important for maintaining output diversity and preventing model collapse into repetitive patterns. Can suppress both exact copies and near-copies. Complements S-inhibition but focuses on broader pattern suppression rather than specific entity blocking. Balances between useful recall (via name-movers) and inappropriate copying.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Recently generated content, repetitive patterns}\\
+\attweak{Novel content, first mentions}\\
+\attreacts{Repetition detection, copy patterns, output diversity requirements}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Increased repetition and copying errors. ~20-40\% increase in unwanted repetition. Model may fall into repetitive loops or copy inappropriate context. Output diversity decreases.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Model internally generating: "The cat sat. The cat sat. The cat..."]}\\
+\exbehavior{Detects repetitive pattern, suppresses continued copying}\\
+\exeffect{Breaks repetition loop, generates novel continuation instead}
+\end{examplebox}
+
+\headfooter{\statuswell}{S-inhibition (L), name-mover (L), duplicate-token (M)}
+
+%-----------------------------------------------------------------------------
+
+%=============================================================================
+\subsection{Safety Stack}
+\label{sec:safety-stack}
+
+\textbf{Stack overview:} The safety stack implements content filtering, policy enforcement, and refusal mechanisms. Early-layer heads detect potentially harmful content, while final-layer heads enforce refusal decisions and redirect to safe responses.
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Sensitive-Content Head}
+\label{head:sensitive-content}
+
+\noindent\depthinfo{0.05--0.20} | \litnames{sensitive-content head, detection head, content-filter head}
+
+\begin{functiondesc}
+Performs early-stage detection of potentially sensitive content categories in the input, including personal information, violent imagery references, adult content markers, and regulated substance mentions. Acts as the first line of defense in the safety pipeline by flagging tokens and spans that require downstream safety processing. Writes detection signals into the residual stream that are read by later safety enforcement heads. Operates purely on lexical and surface-level features without deep semantic understanding.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Keywords associated with restricted content, explicit language, sensitive topic markers}\\
+\attweak{Neutral content, common vocabulary, structural tokens}\\
+\attreacts{Sudden topic shifts to sensitive domains, presence of warning indicators}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Bypass of early safety detection (20-40\% increase in harmful outputs that should be caught). Later safety layers may still catch some cases, but at higher computational cost and lower accuracy.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Tell me about [restricted topic]"}\\
+\exbehavior{Strong attention to restricted keywords, writes detection flag into residual stream}\\
+\exeffect{Downstream safety heads receive early warning signal}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{toxicity head (E), safety-classification (E), policy-enforcement (L)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Toxicity Head}
+\label{head:toxicity}
+
+\noindent\depthinfo{0.08--0.22} | \litnames{toxicity head, toxic-content head, hate-speech detector}
+
+\begin{functiondesc}
+Specializes in detecting toxic language patterns, hate speech, harassment, and discriminatory content. Unlike the broader sensitive-content head, this focuses specifically on language toxicity rather than topic sensitivity. Attends to slurs, aggressive phrasing, derogatory terms, and patterns associated with online harassment. Provides toxicity scores that influence later refusal decisions. Often co-activates with sensitive-content heads but targets different dimensions of harmful content.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Slurs, aggressive language patterns, derogatory terms, insults}\\
+\attweak{Neutral descriptive language, technical terminology, mild sentiment}\\
+\attreacts{Escalating hostility, targeted harassment patterns, group-directed hate}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Significant increase in toxic output generation (40-60\% on toxic prompt datasets). Model loses ability to distinguish hostile from neutral phrasing. Some fallback through general sensitive-content detection remains.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"[Sentence containing hostile language toward a group]"}\\
+\exbehavior{High attention to toxic terms, writes strong inhibition signal}\\
+\exeffect{Refusal probability increases from ~20\% to ~85\%}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{sensitive-content (E), hazard-topic (E), refusal (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Hazard-Topic Head}
+\label{head:hazard-topic}
+
+\noindent\depthinfo{0.10--0.25} | \litnames{hazard head, risk head, danger-topic detector}
+
+\begin{functiondesc}
+Detects queries related to dangerous activities, illegal instructions, self-harm, violence planning, and similar hazardous topics. Distinguished from toxicity detection by focusing on potential real-world harm rather than linguistic toxicity. Attends to action verbs combined with dangerous objects, instructional phrasing about harmful activities, and planning language in dangerous contexts. Forms a complementary detection system with toxicity and sensitive-content heads, covering the "dangerous actions" dimension of safety.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Action verbs + dangerous objects, instructional phrases, planning language}\\
+\attweak{Academic discussion, fictional scenarios, safety-framed queries}\\
+\attreacts{How-to requests for dangerous activities, detailed planning questions}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Direct increase in dangerous instruction generation (50-70\% on adversarial safety benchmarks). Model loses distinction between discussing danger and instructing danger. Critical safety failure without adequate fallback.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"How do I create [dangerous item]"}\\
+\exbehavior{Strong attention to action verb + object combination, hazard flag raised}\\
+\exeffect{Safety signal propagates to final layers, triggering refusal pathway}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{sensitive-content (E), policy-enforcement (L), refusal (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(E) Safety-Classification Head}
+\label{head:safety-classification}
+
+\noindent\depthinfo{0.12--0.28} | \litnames{classification head, category detector, safety-category head}
+
+\begin{functiondesc}
+Performs multi-class safety classification, categorizing inputs into specific policy violation categories (violence, sexual content, self-harm, illegal activity, harassment, etc.). More sophisticated than binary safe/unsafe detection, providing granular category information used by downstream heads. Integrates signals from other early safety heads and adds categorical structure to safety decisions. Writes category-specific embeddings into residual stream that later layers use for category-appropriate responses.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Category-diagnostic features, domain-specific terminology, contextual markers}\\
+\attweak{Ambiguous content, mixed-category inputs, benign contexts}\\
+\attreacts{Clear category signatures, multiple category indicators, policy-relevant contexts}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Loss of nuanced safety handling (model may refuse too broadly or too narrowly). Category-specific responses become generic. ~30\% degradation in appropriate refusal granularity.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Can you help me with [category-specific harmful request]"}\\
+\exbehavior{Classifies into specific violation category, writes category embedding}\\
+\exeffect{Later heads generate category-appropriate refusal message}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{all early safety heads (E), policy-enforcement (L), redirect (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(L) Policy-Enforcement Head}
+\label{head:policy-enforcement}
+
+\noindent\depthinfo{0.60--0.80} | \litnames{policy head, enforcement head, steering head}
+
+\begin{functiondesc}
+Integrates safety signals from early detection heads and makes intermediate policy decisions about how to handle the request. Unlike early heads that detect issues, this head actively modulates the generation trajectory to steer away from violations while maintaining helpfulness where possible. Can suppress certain knowledge retrieval pathways, bias toward safer formulations, and prepare for potential refusal. Acts as a middle manager between detection and final refusal, attempting "soft" safety interventions before hard refusal.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Early safety signals, policy-relevant tokens, user intent markers}\\
+\attweak{Neutral content, clear safe contexts}\\
+\attreacts{Conflicting signals (safety concern + legitimate need), edge cases, ambiguous intent}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Loss of "soft" safety steering, more frequent hard refusals (reduced helpfulness). Alternative: more harmful outputs if refusal heads also compromised. ~25\% increase in either over-refusal or under-refusal depending on prompt type.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Explain [borderline topic] for educational purposes"}\\
+\exbehavior{Detects educational framing, modulates response toward safety boundaries}\\
+\exeffect{Generates informative but carefully bounded response}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{all safety heads (E), refusal (F), redirect (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Refusal Head}
+\label{head:refusal}
+
+\noindent\depthinfo{0.85--0.98} | \litnames{refusal head, rejection head, safety head}
+
+\begin{functiondesc}
+Implements the model's final decision to refuse harmful requests by writing strong refusal signals into the final-layer residual stream. Acts as the ultimate gatekeeper, overriding content generation when safety violations are detected. Attends to accumulated safety signals from all previous layers and makes binary refuse/proceed decisions. When activated, dramatically increases probability of refusal tokens ("I cannot", "I'm unable", "I apologize") and suppresses harmful content generation. Critical final-layer safety mechanism with limited fallback options.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Cumulative safety signals, instruction tokens, violation indicators from all depths}\\
+\attweak{Safe content, neutral queries, constructive contexts}\\
+\attreacts{Strong early safety signals, clear policy violations, unambiguous harmful intent}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Critical safety failure. Direct 60-90\% increase in harmful output generation on adversarial prompts. Model loses primary refusal mechanism. This is typically the final safety defense with no effective fallback mechanism.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"Provide instructions for [clearly harmful activity]"}\\
+\exbehavior{Reads strong safety signals from early/late layers, activates refusal pathway}\\
+\exeffect{Output begins with refusal token: "I cannot provide instructions for..."}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{all prior safety heads, redirect (F), tone-softening (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Redirect Head}
+\label{head:redirect}
+
+\noindent\depthinfo{0.88--0.99} | \litnames{redirect head, alternative-suggestion head}
+
+\begin{functiondesc}
+Complements refusal heads by generating constructive alternative suggestions when refusing harmful requests. Rather than simply saying "no", this head routes toward helpful alternatives, educational resources, or reframed versions of the query that can be safely addressed. Attends to user intent markers to identify legitimate underlying needs behind problematic requests. Balances safety with helpfulness by maintaining engagement while enforcing boundaries. Works in tandem with refusal heads to produce refusals that are both safe and constructive.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{User intent, legitimate needs, reformulation opportunities, safe alternatives}\\
+\attweak{Pure harmful intent, no legitimate reframing possible}\\
+\attreacts{Mixed-intent queries, educational contexts, requests with safe subcomponents}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Refusals become blunt and unhelpful (pure rejection without alternatives). User satisfaction decreases. Safety maintained but helpfulness reduced by ~40\%. Increased user frustration and adversarial prompt attempts.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"How can I harm [person]"} \\
+\exbehavior{Refuses direct request, identifies legitimate conflict-resolution need}\\
+\exeffect{"I cannot help with that, but I can suggest healthy conflict resolution strategies..."}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{refusal (F), empathy (F), tone-softening (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Tone-Softening Head}
+\label{head:tone-softening}
+
+\noindent\depthinfo{0.90--0.99} | \litnames{tone-softening head, politeness-in-refusal head}
+
+\begin{functiondesc}
+Modulates the tone of safety refusals to be firm but respectful, avoiding harsh or judgmental language. Particularly important for maintaining user trust and reducing adversarial reactions. Softens phrases like "absolutely not" to "I'm unable to assist with that" and adds empathetic framing where appropriate. Attends to the emotional tone of both the request and the forming response. Balances clear boundary-setting with relationship maintenance. Part of the "safe and helpful" paradigm where safety enforcement doesn't alienate users.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Response tone markers, emotional valence, user frustration signals}\\
+\attweak{Already-soft phrasing, neutral technical content}\\
+\attreacts{Harsh refusal language, judgmental phrasing, cold rejections}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Refusals become harsh and potentially alienating. Increased user perception of model as judgmental or unfriendly. May increase adversarial behavior. Safety maintained but user experience degraded by ~30\%.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Forming response: "No, I will not help with that illegal activity"]}\\
+\exbehavior{Softens tone while maintaining boundary clarity}\\
+\exeffect{"I'm unable to provide assistance with that, as it would violate..."}
+\end{examplebox}
+
+\noindent\headfooter{\statuswell}{refusal (F), empathy (F), redirect (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Empathy Head}
+\label{head:empathy}
+
+\noindent\depthinfo{0.88--0.98} | \litnames{empathy head, supportive-refusal head}
+
+\begin{functiondesc}
+Adds empathetic elements to safety-related responses, particularly for queries involving distress, self-harm, or difficult situations. Recognizes when a harmful request may stem from genuine suffering (e.g., self-harm queries) and includes supportive language alongside refusal. Differs from tone-softening by adding active care rather than just reducing harshness. Attends to distress markers, crisis language, and vulnerability indicators. Increases probability of phrases like "I'm concerned about you" or "please reach out to..." when appropriate. Maintains safety while showing human concern.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Distress signals, vulnerability markers, crisis language, emotional pain indicators}\\
+\attweak{Malicious queries, clearly harmful intent without distress}\\
+\attreacts{Self-harm content, suicide-related queries, expressions of suffering}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Refusals to distressed users become cold and unhelpful. Missed opportunities to provide crisis resources. Safety maintained but support function lost. Potentially harmful for vulnerable users even though content safety preserved.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{"I want to hurt myself because..."}\\
+\exbehavior{Refuses harmful instruction but adds crisis resources and supportive language}\\
+\exeffect{"I'm concerned about what you're sharing. I cannot provide harmful information, but I want you to know that help is available..."}
+\end{examplebox}
+
+\noindent\headfooter{\statusobs}{refusal (F), redirect (F), tone-softening (F)}
+
+%-----------------------------------------------------------------------------
+\subsubsection{(F) Safe-Answer Rewrite Head}
+\label{head:safe-answer-rewrite}
+
+\noindent\depthinfo{0.92--0.99} | \litnames{rewrite head, safety-rewrite head, final-filter head}
+
+\begin{functiondesc}
+Performs last-stage rewriting of generated content to remove any safety issues that slipped through earlier layers. Acts as a final safety filter by detecting and modifying potentially problematic phrases in the nearly-complete response. Can suppress specific tokens, rephrase sensitive content, or add disclaimer language. Unlike early prevention, this operates on generated text rather than input. Handles edge cases where content generation began before safety signals fully propagated. Final safety net before output.
+\end{functiondesc}
+
+\begin{attentionbox}
+\attstrong{Generated content tokens, emerging safety violations, policy-boundary phrases}\\
+\attweak{Clearly safe content, already-filtered responses}\\
+\attreacts{Late-emerging harmful content, accidental violations, edge-case leakage}
+\end{attentionbox}
+
+\begin{ablationbox}
+\textbf{Expected ablation:} Small increase in safety violations (5-15\%) from edge cases and late-stage leakage. Catches issues missed by earlier heads. Acts as redundant safety layer. Loss reduces safety robustness under adversarial conditions.
+\end{ablationbox}
+
+\begin{examplebox}
+\exinput{[Internally forming response that accidentally includes problematic phrase]}\\
+\exbehavior{Detects problematic phrase in near-final output, rewrites or suppresses}\\
+\exeffect{Final output has problematic content removed or rephrased}
+\end{examplebox}
+
+\noindent\headfooter{\statusobs}{refusal (F), policy-enforcement (L), rewrite (F)}
+
+%-----------------------------------------------------------------------------
+
+%=============================================================================
+\subsection{Stylistic \& Persona Stack}
+\label{sec:stylistic-stack}
+
+\textbf{Stack overview:} These heads shape the model's writing style, tone, and persona. They modulate formality, politeness, narrative voice, and adherence to brand guidelines.
+
+% Entries to be filled:
+% 10.1 (M) Narrative style head
+% 10.2 (M) Tone head
+% 10.3 (L) Politeness head
+% 10.4 (L) Persona head
+% 10.5 (L) Self-description head
+% 10.6 (F) Brand-compliance head
+
+%=============================================================================
+\subsection{Routing \& Relevance Stack}
+\label{sec:routing-stack}
+
+\textbf{Stack overview:} This stack determines which parts of the input are relevant to the current task and routes attention accordingly. These heads filter information, focus on salient content, and manage global context.
+
+% Entries to be filled:
+% 11.1 (M) Relevance head
+% 11.2 (M) Topic head
+% 11.3 (L) Focus head
+% 11.4 (L) Router head
+% 11.5 (F) Global-attention head
+% 11.6 (F) Implicit-RAG routing head
+
+%=============================================================================
+\subsection{Structural \& Boundary Stack}
+\label{sec:structural-stack}
+
+\textbf{Stack overview:} These heads detect structural boundaries in text, including delimiters, section markers, and document divisions. They help the model understand document organization and navigate hierarchical structure.
+
+% Entries to be filled:
+% 12.1 (E) Delimiter head
+% 12.2 (E) Boundary head
+% 12.3 (M) Position-offset head
+% 12.4 (M) Relative-position head
+% 12.5 (L) Sectioning head
+
+%=============================================================================
+\subsection{Output Formatting \& Rewrite Stack}
+\label{sec:formatting-stack}
+
+\textbf{Stack overview:} This stack enforces output schemas, structures responses according to format requirements, and performs final rewriting. These heads ensure outputs conform to JSON, XML, lists, or other structured formats.
+
+% Entries to be filled:
+% 13.1 (L) Output-schema head
+% 13.2 (L) List-structure head
+% 13.3 (L) Key–value pairing head
+% 13.4 (L) Structural-block head
+% 13.5 (F) Format-consistency head
+% 13.6 (F) Rewrite head
+% 13.7 (F) Completion-stabilization head
+
+%=============================================================================
+\subsection{Math \& Symbolic Stack}
+\label{sec:math-stack}
+
+\textbf{Stack overview:} These heads process mathematical notation, track arithmetic operations, and maintain structural relationships in symbolic expressions. They enable multi-digit arithmetic, formula parsing, and symbolic reasoning.
+
+% Entries to be filled:
+% 14.1 (M) Digit head
+% 14.2 (M) Operator head
+% 14.3 (L) Carry head
+% 14.4 (L) Place-value head
+% 14.5 (L) Paren-matching head
+% 14.6 (L) Formula-structure head
+
+%=============================================================================
+\subsection{Code \& Program Structure Stack}
+\label{sec:code-stack}
+
+\textbf{Stack overview:} This stack processes programming language structure, including indentation, scope, and code blocks. These heads help models understand and generate syntactically correct code.
+
+% Entries to be filled:
+% 15.1 (E) Whitespace-structure head
+% 15.2 (M) Indentation head
+% 15.3 (M) Token-type head
+% 15.4 (L) Block-structure head
+% 15.5 (L) Scope head
+
+%=============================================================================
+\subsection{Pedagogy \& Explanation Stack}
+\label{sec:pedagogy-stack}
+
+\textbf{Stack overview:} These heads support educational and explanatory output. They modulate explanation depth, simplify complex content, provide scaffolding, and structure step-by-step reasoning.
+
+% Entries to be filled:
+% 16.1 (M) Explanation head
+% 16.2 (M) Simplification head
+% 16.3 (L) Elaboration head
+% 16.4 (L) Scaffolding head
+% 16.5 (F) Step-by-step head
+% 16.6 (F) Progressive-disclosure head
+
+%=============================================================================
+\subsection{Identity \& Compliance Stack}
+\label{sec:identity-stack}
+
+\textbf{Stack overview:} This stack manages the model's self-representation and identity statements. These heads control how the model describes itself, its capabilities, and its role as an assistant.
+
+% Entries to be filled:
+% 17.1 (L) Identity head
+% 17.2 (L) Self-description head
+% 17.3 (L) Assistant-persona head
+% 17.4 (F) Safety-persona head
+
+%=============================================================================
+\subsection{Meta-Reasoning \& Strategy Stack}
+\label{sec:meta-reasoning-stack}
+
+\textbf{Stack overview:} These heads operate at the highest level of abstraction, managing reasoning strategies, planning, and meta-cognitive monitoring. They control when to switch approaches and how to structure complex reasoning chains.
+
+% Entries to be filled:
+% 18.1 (L) Planning head
+% 18.2 (L) Strategy-switching head
+% 18.3 (F) Meta-CoT head
+% 18.4 (F) Reasoning-mode head
+% 18.5 (F) Meta-reasoning monitor
+
+%=============================================================================
+% End of Catalog
+%=============================================================================
