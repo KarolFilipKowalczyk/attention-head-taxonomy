@@ -1,5 +1,6 @@
 %=============================================================================
 % PREAMBLE.TEX - Packages, Macros, and Formatting
+% See STYLE_GUIDE.md for writing conventions and style requirements
 %=============================================================================
 
 %-----------------------------------------------------------------------------
@@ -96,6 +97,18 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.5em}
 
+%-----------------------------------------------------------------------------
+% Typography Enhancements
+%-----------------------------------------------------------------------------
+% Improved microtypography (character protrusion only, expansion disabled for compatibility)
+\usepackage[protrusion=true,expansion=false]{microtype}
+
+% Better handling of quotes - use \enquote{} for proper quotes
+\usepackage{csquotes}
+
+% Intelligent spacing after commands
+\usepackage{xspace}
+
 %=============================================================================
 % CUSTOM COMMANDS AND ENVIRONMENTS
 %=============================================================================
@@ -137,7 +150,32 @@
 \newcommand{\exeffect}[1]{\textit{Effect:} #1}
 
 %-----------------------------------------------------------------------------
-% Custom Environments (NOW tcolorbox is loaded)
+% Style Guide Compliance Helpers
+%-----------------------------------------------------------------------------
+
+% Proper abbreviations with automatic comma
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etc}{etc.\xspace}
+
+% Non-breaking space before citations (use \citep or \citet with this)
+\newcommand{\citenbsp}[1]{~\cite{#1}}
+
+% Section symbol reference (§) - preferred style
+\newcommand{\secref}[1]{§\ref{#1}}
+
+% Depth reference in cross-references: head-name (D)
+\newcommand{\headref}[2]{\hyperref[#1]{#2}}
+\newcommand{\headrefwdepth}[3]{\hyperref[#1]{#2}~(#3)}
+
+% Impact magnitude indicators for ablations
+\newcommand{\impactcritical}[1]{#1\% degradation}
+\newcommand{\impactsignificant}[1]{#1\% degradation}
+\newcommand{\impactmoderate}[1]{#1\% degradation}
+\newcommand{\impactreduced}[1]{#1\% degradation}
+
+%-----------------------------------------------------------------------------
+% Custom Environments
 %-----------------------------------------------------------------------------
 \newenvironment{functiondesc}{%
     \par\vspace{0.3em}%
@@ -187,6 +225,21 @@
     before skip=0.5em,
     after skip=0.5em
 }
+
+%-----------------------------------------------------------------------------
+% Quality Assurance Comments
+%-----------------------------------------------------------------------------
+% Use these during writing/review to flag items for attention
+% Remove all before final compilation
+
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+\newcommand{\FIXME}[1]{\textcolor{red}{\textbf{FIXME:} #1}}
+\newcommand{\CHECKSTYLE}[1]{\textcolor{blue}{\textbf{STYLE:} #1}}
+
+% To disable QA comments for final version, uncomment these:
+% \renewcommand{\TODO}[1]{}
+% \renewcommand{\FIXME}[1]{}
+% \renewcommand{\CHECKSTYLE}[1]{}
 
 %-----------------------------------------------------------------------------
 % End of Preamble
