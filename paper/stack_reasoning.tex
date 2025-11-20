@@ -2,7 +2,7 @@
 \subsection{Reasoning \& Algorithmic Stack}
 \label{sec:reasoning-stack}
 
-\textbf{Stack overview:} This stack encompasses heads that perform pattern matching, sequence continuation, algorithmic reasoning, strategic planning, and meta-cognitive oversight. These heads enable in-context learning, pattern completion, systematic token prediction, and higher-level reasoning quality control.
+\textbf{Stack overview:} Heads performing pattern matching, sequence continuation, algorithmic reasoning, and meta-cognitive oversight. Enable in-context learning, pattern completion, and reasoning quality control.
 
 %-----------------------------------------------------------------------------
 \subsubsection{(E) Previous-Token Heads}
@@ -11,26 +11,26 @@
 \noindent\depthinfo{0.05--0.18} | \litnames{previous-token head, shift head, offset head}
 
 \begin{functiondesc}
-Copy information from each token to the position of the next token, creating a shifted representation where token $t$ contains information about token $t-1$. These heads appear to be foundational components of induction circuits, enabling later heads to access ``what came before'' without directly attending backwards. They implement a simple but crucial transformation that allows pattern matching across the sequence. These heads typically show strong diagonal attention patterns (attending from position $i$ to position $i-1$).
+Copy information from token $t$ to position $t+1$, creating shifted representation where each position contains information about the previous token. Foundational for induction circuits, enabling later heads to access ``what came before'' without attending backwards. Show strong diagonal attention patterns ($i \rightarrow i-1$).
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Immediately preceding token (diagonal attention pattern)}\\
-\attweak{Distant tokens, same-position tokens}\\
-\attreacts{Sequential structure, token boundaries}
+\attstrong{Immediately preceding token}\\
+\attweak{Distant tokens, same-position}\\
+\attreacts{Sequential structure, boundaries}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Breaks induction circuits entirely, causing degradation in pattern completion tasks. Induction heads become unable to access ``what came after previous occurrences'' since that information is no longer shifted forward. Important for in-context learning.
+\textbf{Expected ablation:} Breaks induction circuits entirely. Induction heads lose access to ``what came after previous occurrences''. Critical for in-context learning.
 \end{ablationbox}
 
 \begin{examplebox}
 \exinput{``The cat sat. The cat...''}\\
-\exbehavior{Copy ``The'' to position after ``The'', ``cat'' to position after ``cat'', etc.}\\
-\exeffect{Later induction heads can match ``cat'' and access what followed it (``sat'')}
+\exbehavior{Copy tokens forward one position}\\
+\exeffect{Induction heads match ``cat'' and access ``sat''}
 \end{examplebox}
 
-\headfooter{\statuswell}{induction head (M), duplicate-token (M)}
+\headfooter{\statuswell}{induction (M), duplicate-token (M)}
 
 %-----------------------------------------------------------------------------
 \subsubsection{(E) Local Pattern Heads}
@@ -39,26 +39,26 @@ Copy information from each token to the position of the next token, creating a s
 \noindent\depthinfo{0.08--0.20} | \litnames{local pattern head, char-level head, n-gram head}
 
 \begin{functiondesc}
-Detect and process local character-level or subword patterns, particularly useful for handling spelling, capitalization, punctuation patterns, and morphological structure. These heads operate at a finer granularity than most heads, attending to patterns within and between adjacent tokens. Important for tasks like spell checking, case handling, and recognizing common subword patterns. May also detect repeated character sequences or structural patterns like ``ing'', ``tion'', or punctuation clusters.
+Detect character-level and subword patterns for spelling, capitalization, punctuation, and morphology. Operate at finer granularity than most heads, attending within and between adjacent tokens. Recognize patterns like ``ing'', ``tion'', or punctuation clusters.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Adjacent tokens, subword units, character-level patterns}\\
-\attweak{Long-range dependencies, semantic content}\\
-\attreacts{Spelling patterns, capitalization, punctuation, morphology}
+\attstrong{Adjacent tokens, subword units}\\
+\attweak{Long-range dependencies, semantics}\\
+\attreacts{Spelling, capitalization, morphology}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Degradation in handling of misspellings, case variations, and morphological patterns. Increase in errors on tasks requiring character-level awareness. Partial fallback through tokenization and other pattern heads.
+\textbf{Expected ablation:} Degraded handling of misspellings, case variations, morphology. Errors on character-level tasks. Partial compensation through tokenization.
 \end{ablationbox}
 
 \begin{examplebox}
-\exinput{``The organizATION's'' (unusual capitalization)}\\
-\exbehavior{Detect unusual case pattern in ``ATION'', attend to surrounding context}\\
-\exeffect{Help model handle non-standard capitalization correctly}
+\exinput{``organizATION's''}\\
+\exbehavior{Detect unusual case pattern}\\
+\exeffect{Handle non-standard capitalization}
 \end{examplebox}
 
-\headfooter{\statusobs}{induction head (M), duplicate-token (M)}
+\headfooter{\statusobs}{induction (M), duplicate-token (M)}
 
 %-----------------------------------------------------------------------------
 \subsubsection{(M) Induction Heads}
@@ -67,23 +67,23 @@ Detect and process local character-level or subword patterns, particularly usefu
 \noindent\depthinfo{0.30--0.65} | \litnames{induction head, pattern head, copy head, ICL head}
 
 \begin{functiondesc}
-Detect repeated subsequences of the form [A][B]...[A] and predict that [B] should follow the second [A]. These heads operate by attending to tokens that appeared after previous instances of the current token. They work in conjunction with previous-token heads which copy information about what preceded each token. This mechanism appears fundamental to in-context learning, enabling pattern completion, name recall, and few-shot learning without parameter updates. One of the most well-documented and important head types in transformer interpretability.
+Detect [A][B]...[A] patterns and predict [B] follows the second [A]. Attend to tokens after previous instances of current token. Work with previous-token heads to enable pattern completion, name recall, and few-shot learning. Fundamental to in-context learning.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Tokens following previous occurrences of current token}\\
-\attweak{Immediate neighbors, first occurrence, unrelated tokens}\\
-\attreacts{Token repetition, [A][B]...[A] patterns, contextual recurrence}
+\attstrong{Tokens following previous occurrences}\\
+\attweak{Immediate neighbors, first occurrence}\\
+\attreacts{Token repetition, [A][B]...[A] patterns}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Significant degradation in in-context learning tasks, reduced pattern completion and few-shot learning. Model may partially compensate through other heads but with substantial accuracy loss. Important for ICL capability.
+\textbf{Expected ablation:} Significant degradation in in-context learning and pattern completion. 30--50\% accuracy loss on few-shot tasks. Partial compensation through other heads.
 \end{ablationbox}
 
 \begin{examplebox}
-\exinput{``When Mary and John went to the store, Mary bought...''}\\
-\exbehavior{Second ``Mary'' attends to tokens following first ``Mary'' (especially ``and'')}\\
-\exeffect{Increased probability of contextually appropriate continuation}
+\exinput{``Mary and John went to the store, Mary bought...''}\\
+\exbehavior{Second ``Mary'' attends to tokens after first ``Mary''}\\
+\exeffect{Increased probability of appropriate continuation}
 \end{examplebox}
 
 \headfooter{\statuswell}{previous-token (E), duplicate-token (M), name-mover (L)}
@@ -95,23 +95,23 @@ Detect repeated subsequences of the form [A][B]...[A] and predict that [B] shoul
 \noindent\depthinfo{0.35--0.60} | \litnames{duplicate-token head, repetition head, copy head}
 
 \begin{functiondesc}
-Detect when the current token has appeared previously in the sequence, marking repeated tokens for downstream processing. Unlike induction heads which predict what comes next, duplicate-token heads simply signal ``this token appeared before''. This information is used by various circuits including IOI (indirect object identification), name-mover heads, and copy-suppression mechanisms. These heads implement a simpler form of pattern matching than full induction, serving as building blocks for more complex behaviors.
+Detect when current token appeared previously, marking repeats for downstream processing. Unlike induction heads (which predict next token), these simply signal ``seen before''. Used by IOI circuits, name-movers, and copy-suppression.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Previous identical tokens (exact matches)}\\
-\attweak{Similar but non-identical tokens, first occurrence}\\
-\attreacts{Exact token repetition, name recurrence, repeated phrases}
+\attstrong{Previous identical tokens}\\
+\attweak{Similar non-identical, first occurrence}\\
+\attreacts{Exact repetition, name recurrence}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Impaired duplicate detection, affecting name-mover circuits and copy-suppression. Degradation in tasks requiring duplicate awareness. Partial overlap with induction heads provides some redundancy.
+\textbf{Expected ablation:} Impaired duplicate detection. Degraded name-mover and copy-suppression circuits. Overlap with induction heads provides redundancy.
 \end{ablationbox}
 
 \begin{examplebox}
 \exinput{``Alice gave the book to Bob. Then Alice...''}\\
-\exbehavior{Second ``Alice'' detects it appeared earlier, writes duplicate signal}\\
-\exeffect{Downstream heads (name-movers, S-inhibition) use this signal}
+\exbehavior{Second ``Alice'' writes duplicate signal}\\
+\exeffect{Name-movers and S-inhibition use signal}
 \end{examplebox}
 
 \headfooter{\statuswell}{induction (M), name-mover (L), S-inhibition (L)}
@@ -123,23 +123,23 @@ Detect when the current token has appeared previously in the sequence, marking r
 \noindent\depthinfo{0.40--0.65} | \litnames{skip-trigram head, skip-gram head}
 
 \begin{functiondesc}
-Implement skip-gram pattern matching, attending to non-contiguous patterns like [A]...[B]...[C] where the dots represent intervening tokens. More flexible than strict n-gram matching, these heads allow for pattern recognition across variable distances. Useful for detecting phrasal patterns, idiomatic expressions, and structural templates with flexible word order. They generalize beyond strict adjacency requirements while maintaining pattern specificity.
+Match non-contiguous patterns [A]...[B]...[C] with intervening tokens. More flexible than strict n-grams. Detect phrasal patterns, idioms, and structural templates with flexible word order.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Pattern components separated by 1--3 tokens}\\
-\attweak{Strictly adjacent patterns, very long-range dependencies}\\
-\attreacts{Phrasal patterns, templates, flexible idioms}
+\attstrong{Components separated by 1--3 tokens}\\
+\attweak{Adjacent patterns, long-range}\\
+\attreacts{Phrasal patterns, flexible idioms}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Reduced recognition of flexible patterns and templates. Degradation on tasks requiring non-contiguous pattern matching. Less critical than induction heads; other pattern mechanisms provide fallback.
+\textbf{Expected ablation:} Reduced flexible pattern recognition. Less critical than induction heads; other mechanisms compensate.
 \end{ablationbox}
 
 \begin{examplebox}
-\exinput{``not only X but also'' (skip-bigram pattern)}\\
-\exbehavior{Recognize ``not...but'' pattern despite intervening tokens}\\
-\exeffect{Help predict ``also'' after ``but'' even with intervening content}
+\exinput{``not only X but also''}\\
+\exbehavior{Recognize ``not...but'' despite intervening tokens}\\
+\exeffect{Predict ``also'' after ``but''}
 \end{examplebox}
 
 \headfooter{\statusobs}{induction (M), local-pattern (E)}
@@ -151,23 +151,23 @@ Implement skip-gram pattern matching, attending to non-contiguous patterns like 
 \noindent\depthinfo{0.45--0.70} | \litnames{algorithmic head, continuation head, sequence head}
 
 \begin{functiondesc}
-Recognize and continue algorithmic sequences such as counting (1, 2, 3...), days of week, months, or other systematic progressions. Distinct from general pattern matching by operating on sequences with clear algorithmic rules, these heads can detect arithmetic progressions, cyclic patterns, and other rule-governed sequences. They contribute to the model's ability to perform basic reasoning over structured sequences without explicit training on those specific patterns.
+Recognize and continue algorithmic sequences: counting, days of week, months, systematic progressions. Operate on sequences with clear algorithmic rules. Detect arithmetic progressions, cyclic patterns, rule-governed sequences.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Sequential elements in algorithmic patterns (numbers, ordered lists)}\\
-\attweak{Random sequences, semantic patterns without algorithmic structure}\\
-\attreacts{Arithmetic progressions, cyclic orderings, systematic enumerations}
+\attstrong{Sequential elements in algorithmic patterns}\\
+\attweak{Random sequences, semantic patterns}\\
+\attreacts{Arithmetic progressions, cyclic orderings}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Reduced performance on sequence continuation tasks (counting, ordering). Degradation on arithmetic sequences and structured enumerations. Some algorithmic reasoning may persist through other mechanisms.
+\textbf{Expected ablation:} Reduced sequence continuation performance. Degradation on counting, ordering, arithmetic. Some reasoning persists through other mechanisms.
 \end{ablationbox}
 
 \begin{examplebox}
 \exinput{``Monday, Tuesday, Wednesday, ...''}\\
-\exbehavior{Recognize day-of-week sequence, attend to progression pattern}\\
-\exeffect{Strongly predict ``Thursday'' as next token}
+\exbehavior{Recognize day-of-week progression}\\
+\exeffect{Strongly predict ``Thursday''}
 \end{examplebox}
 
 \headfooter{\statusobs}{induction (M), digit (M)}
@@ -176,26 +176,26 @@ Recognize and continue algorithmic sequences such as counting (1, 2, 3...), days
 \subsubsection{(L) Strategy Heads}
 \label{head:strategy}
 
-\noindent\depthinfo{0.68--0.88} | \litnames{strategy head, planning head, strategy-switching head, approach-selection head, approach-adaptation head, pivot head}
+\noindent\depthinfo{0.68--0.88} | \litnames{strategy head, planning head, approach-selection head, pivot head}
 
 \begin{functiondesc}
-Plan overall approach and strategy for complex tasks, and adapt strategy when current approaches prove ineffective. These heads influence high-level structure such as whether to break into steps, what order to address components, and which methods to apply. They operate before detailed execution to establish the strategic framework. These heads recognize different task types that may require different approaches, such as analytical versus creative reasoning, or sequential versus parallel processing. They can decompose complex queries into manageable subtasks. They also detect when the current reasoning strategy is not working effectively and switch to alternative approaches. These heads monitor problem-solving progress and recognize dead ends, insufficient methods, or the need for different techniques. They may pivot from analytical to creative approaches, from depth-first to breadth-first exploration, or from deductive to inductive reasoning. Useful for robust problem-solving across varied challenges and effective handling of multi-part or complex queries.
+Plan overall approach for complex tasks and adapt when strategies prove ineffective. Influence high-level structure: step decomposition, component ordering, method selection. Recognize task types requiring different approaches (analytical vs. creative, sequential vs. parallel). Decompose complex queries into subtasks. Monitor progress, detect dead ends, switch strategies when needed.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Task complexity indicators, multi-part queries, strategic choice points, progress indicators, approach effectiveness signals}\\
-\attweak{Simple single-step tasks, purely reactive responses, successfully progressing solutions}\\
-\attreacts{Complex tasks, planning requests, multi-step problems, strategic decision points, signs of insufficient progress}
+\attstrong{Task complexity, multi-part queries, progress indicators}\\
+\attweak{Single-step tasks, progressing solutions}\\
+\attreacts{Complex tasks, planning requests, insufficient progress}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Reduced strategic planning quality and adaptability. May jump into execution without appropriate planning or continue unproductive approaches longer than optimal. Complex tasks handled less efficiently with reduced ability to recover from initially incorrect approaches.
+\textbf{Expected ablation:} Reduced planning quality and adaptability. Premature execution without planning. Persist with unproductive approaches. 15--25\% efficiency loss on complex tasks.
 \end{ablationbox}
 
 \begin{examplebox}
-\exinput{``Help me plan a machine learning project to predict customer churn.''}\\
-\exbehavior{Recognize need for structured planning, break into phases}\\
-\exeffect{Response structures approach: data collection $\rightarrow$ exploratory analysis $\rightarrow$ feature engineering $\rightarrow$ model selection $\rightarrow$ evaluation}
+\exinput{``Plan a ML project for customer churn''}\\
+\exbehavior{Recognize need for structured planning}\\
+\exeffect{Structure: data $\rightarrow$ analysis $\rightarrow$ features $\rightarrow$ model $\rightarrow$ evaluation}
 \end{examplebox}
 
 \headfooter{\statusobs}{reasoning-oversight (F)}
@@ -204,26 +204,26 @@ Plan overall approach and strategy for complex tasks, and adapt strategy when cu
 \subsubsection{(F) Reasoning-Oversight Heads}
 \label{head:reasoning-oversight}
 
-\noindent\depthinfo{0.88--0.99} | \litnames{reasoning-mode head, thinking-style head, cognitive-mode head, reasoning head, meta-reasoning head, meta-CoT head, reasoning-reflection head, thought-monitoring head, cognitive-oversight head, reasoning-quality head}
+\noindent\depthinfo{0.88--0.99} | \litnames{reasoning-mode head, cognitive-mode head, meta-CoT head, reasoning-quality head}
 
 \begin{functiondesc}
-Provide highest-level management of reasoning processes, including mode selection and quality monitoring. These heads select and maintain appropriate reasoning modes for different tasks (analytical mode for precise logical problems, creative mode for brainstorming, analogical mode for novel domains, deductive versus inductive reasoning for different inference types) while simultaneously monitoring the quality and direction of reasoning chains. They identify when more thought is needed, detect reasoning errors or gaps, flag uncertain conclusions, and can trigger re-thinking or additional reasoning steps. Operating at a meta-level above regular chain-of-thought reasoning, these heads help ensure reasoning chains are sound, complete, and appropriately matched to task requirements. They influence which reasoning patterns and heuristics become active and act as cognitive oversight to help prevent confident errors in complex reasoning scenarios.
+Manage reasoning processes: mode selection and quality monitoring. Select reasoning modes (analytical, creative, analogical, deductive, inductive) matched to task type. Monitor reasoning chain quality, detect errors and gaps, flag uncertainty, trigger re-thinking. Operate at meta-level above chain-of-thought. Influence which reasoning patterns activate. Prevent confident errors in complex scenarios.
 \end{functiondesc}
 
 \begin{attentionbox}
-\attstrong{Task type indicators, reasoning mode cues, cognitive approach requirements, reasoning quality indicators, logical gaps, uncertainty signals, reasoning chain progress, consistency checks}\\
-\attweak{Mode-independent content, simple factual responses, non-reasoning tasks, straightforward answers}\\
-\attreacts{Problem types, explicit mode requests, task characteristics suggesting optimal approach, complex reasoning tasks, logical steps, argument quality, reasoning errors, inconsistencies}
+\attstrong{Task type, reasoning mode cues, quality indicators, logical gaps}\\
+\attweak{Simple factual responses, non-reasoning tasks}\\
+\attreacts{Complex reasoning, logical steps, errors, inconsistencies}
 \end{attentionbox}
 
 \begin{ablationbox}
-\textbf{Expected ablation:} Less appropriate reasoning mode selection and reduced reasoning quality oversight. May use analytical mode for creative tasks or vice versa, reducing effectiveness. More logical gaps, less self-correction, reduced reasoning completeness. Chain-of-thought reasoning becomes less reliable, particularly for complex or multi-step problems. Reasoning remains functional but less well-suited to specific task requirements.
+\textbf{Expected ablation:} Less appropriate mode selection. More logical gaps, reduced self-correction. Chain-of-thought less reliable on complex problems. 20--30\% degradation on multi-step reasoning.
 \end{ablationbox}
 
 \begin{examplebox}
-\exinput{``Brainstorm creative names'' or [Complex logical problem requiring multi-step reasoning]}\\
-\exbehavior{Select creative/generative mode rather than analytical; monitor reasoning chain, detect gap: ``Wait, I should verify this assumption...''}\\
-\exeffect{Free-flowing creative suggestions + improved reasoning quality through self-monitoring}
+\exinput{``Brainstorm creative names''}\\
+\exbehavior{Select creative mode vs. analytical}\\
+\exeffect{Free-flowing suggestions, not logical analysis}
 \end{examplebox}
 
 \headfooter{\statusobs}{strategy (L), step-by-step (F)}
