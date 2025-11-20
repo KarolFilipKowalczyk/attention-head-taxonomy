@@ -23,6 +23,8 @@ This project proposes a unified taxonomy consisting of:
 
 Heads are organized into functional stacks. Within each stack, heads are ordered by depth (`Early -> Middle -> Late -> Final`).
 
+![Table of Attention Heads](./table.png)
+
 | Stack Name | Core Function | Examples |
 | :--- | :--- | :--- |
 | **Reasoning & Algorithmic** | Pattern matching, sequence continuation, and strategic planning. | `(M) Induction Head`, `(L) Strategy Head` |
@@ -39,8 +41,6 @@ Heads are organized into functional stacks. Within each stack, heads are ordered
 *For a machine-readable version, see [`data/cross_reference.yaml`](./data/cross_reference.yaml).*
 
 This project maps informal literature names to canonical names.
-
-![Table of Attention Heads](./table.png)
 
 | Literature Name | Canonical Name | Stack |
 | :--- | :--- | :--- |
