@@ -40,6 +40,8 @@ Heads are organized into functional stacks. Within each stack, heads are ordered
 
 This project maps informal literature names to canonical names.
 
+![Table of Attention Heads](./table.png)
+
 | Literature Name | Canonical Name | Stack |
 | :--- | :--- | :--- |
 | **Anti-copy head** | `(L) Copy-Suppression Head` | Knowledge Retrieval |
